@@ -17,7 +17,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
   const [success, setSuccess] = useState(false);
   
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.email) {
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) return;

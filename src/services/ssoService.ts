@@ -26,7 +26,12 @@ export class SSOService {
       // auth-client에서는 토큰을 저장하지 않음 (서버에서 HTTP-only 쿠키로 처리)
       return redirectUrl;
     } catch (error) {
-      console.error('SSO 로그인 처리 실패:', error);
+      // 에러는 상위 컴포넌트에서 처리하도록 전달
+      // 운영 환경에서는 로그 수집 서비스로 전송
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('SSO 로그인 처리 실패:', error);
+      }
       throw error;
     }
   }

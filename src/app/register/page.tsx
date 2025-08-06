@@ -21,7 +21,7 @@ export default function RegisterPage(): React.JSX.Element {
   const dispatch = useAppDispatch();
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -37,7 +37,7 @@ export default function RegisterPage(): React.JSX.Element {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.email) {
@@ -72,7 +72,7 @@ export default function RegisterPage(): React.JSX.Element {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) return;

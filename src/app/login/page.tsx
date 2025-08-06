@@ -53,7 +53,7 @@ function LoginPageContent(): React.JSX.Element {
     }
   }, [error, dispatch]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
 
     // 기본 보안 검증
@@ -96,7 +96,7 @@ function LoginPageContent(): React.JSX.Element {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
     // Honeypot 검사 (봇 탐지)
@@ -128,7 +128,7 @@ function LoginPageContent(): React.JSX.Element {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) return;
@@ -137,7 +137,7 @@ function LoginPageContent(): React.JSX.Element {
       // 로그인 처리 (SSO와 일반 로그인 통합)
       const result = await dispatch(loginUser({ 
         loginData: formData, 
-        redirectSession: redirectSession || undefined 
+        ...(redirectSession && { redirectSession }) 
       })).unwrap();
       
       // SSO가 아닌 경우에만 페이지 이동
@@ -153,14 +153,14 @@ function LoginPageContent(): React.JSX.Element {
   };
 
   // Google 로그인 처리
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = (): void => {
     const redirectSession = searchParams.get('redirect-session');
     const googleUrl = authService.getGoogleLoginUrl(redirectSession || undefined);
     window.location.href = googleUrl;
   };
 
   // Naver 로그인 처리
-  const handleNaverLogin = () => {
+  const handleNaverLogin = (): void => {
     const redirectSession = searchParams.get('redirect-session');
     const naverUrl = authService.getNaverLoginUrl(redirectSession || undefined);
     window.location.href = naverUrl;

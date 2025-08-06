@@ -3,7 +3,7 @@
 // ============================================================================
 import type { ApiResponse, HttpClientConfig } from '@krgeobuk/http-client/types';
 
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // auth-client 전용 HTTP 클라이언트 설정 (토큰 관리 없음)
 const authClientConfig: HttpClientConfig = {
@@ -35,15 +35,15 @@ axiosInstance.interceptors.response.use(
 
 // auth-client 전용 API 클라이언트 (공통패키지 타입 사용)
 export const apiClient = {
-  get: <T = unknown>(url: string, config?: AxiosRequestConfig) => 
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
     axiosInstance.get<ApiResponse<T>>(url, config),
-  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) => 
+  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
     axiosInstance.post<ApiResponse<T>>(url, data, config),
-  put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) => 
+  put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
     axiosInstance.put<ApiResponse<T>>(url, data, config),
-  delete: <T = unknown>(url: string, config?: AxiosRequestConfig) => 
+  delete: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
     axiosInstance.delete<ApiResponse<T>>(url, config),
-  patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) => 
+  patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
     axiosInstance.patch<ApiResponse<T>>(url, data, config),
 };
 
@@ -137,7 +137,10 @@ export const getSSORedirectUrl = (sessionId: string, redirectUri: string): strin
 // HTTP 클라이언트 정리 함수
 export const cleanupHttpClient = (): void => {
   // auth-client에서는 특별한 정리가 필요하지 않음 (토큰 관리 없음)
-  console.log('Auth client HTTP cleanup completed');
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log('Auth client HTTP cleanup completed');
+  }
 };
 
 export default apiClient;

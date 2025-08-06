@@ -39,7 +39,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     setToken(tokenParam);
   }, [searchParams, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -55,7 +55,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.password) {
@@ -76,7 +76,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm() || !token) return;
