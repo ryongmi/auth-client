@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Force remove underlines from all elements */
+a,
+a *,
+button,
+button *,
+[role="button"],
+[role="button"] *,
+.btn,
+.btn *,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  text-decoration: none !important;
+}
+
+/* Complete focus outline removal for a tags and buttons */
+a,
+a:focus,
+a:focus-visible,
+a:hover,
+a:active,
+a:visited,
+button,
+button:focus,
+button:focus-visible,
+button:hover,
+button:active,
+[role="button"],
+[role="button"]:focus,
+[role="button"]:focus-visible,
+[role="button"]:hover,
+[role="button"]:active,
+.btn,
+.btn:focus,
+.btn:focus-visible,
+.btn:hover,
+.btn:active,
+input[type="button"],
+input[type="button"]:focus,
+input[type="button"]:hover,
+input[type="button"]:active,
+input[type="submit"],
+input[type="submit"]:focus,
+input[type="submit"]:hover,
+input[type="submit"]:active,
+input[type="reset"],
+input[type="reset"]:focus,
+input[type="reset"]:hover,
+input[type="reset"]:active {
+  outline: none !important;
+  text-decoration: none !important;
+}
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 다크 모드 스크롤바 */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: #2d2d2d;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #555;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #777;
+  }
+}
+
+/* 로딩 애니메이션 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 페이드 인 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 버튼 호버 효과 */
+.btn-hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* 폼 스타일 */
+.form-field {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+}
+
+.form-field.error {
+  @apply border-red-500 bg-red-50;
+}
+
+.form-error {
+  @apply text-red-600 text-sm mt-1 flex items-center;
+}
+
+/* 그라데이션 배경 */
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-bg-light {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* 글래스모피즘 효과 */
+.glass {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

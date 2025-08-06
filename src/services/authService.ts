@@ -1,0 +1,95 @@
+import { apiClient } from '@/lib/httpClient';
+import { 
+  LoginRequest, 
+  LoginResponse, 
+  ExtendedSignupRequest, 
+  SignupResponse,
+  ForgotPasswordFormData,
+  ResetPasswordFormData
+} from '@/types';
+
+export class AuthService {
+  // 로그인 (SSO 지원)
+  async login(loginData: LoginRequest, redirectSession?: string): Promise<LoginResponse | void> {
+    const url = redirectSession ? `/auth/login?redirect_session=${redirectSession}` : '/auth/login';
+    const response = await apiClient.post<LoginResponse>(url, loginData);
+    
+    // SSO 리다이렉트의 경우 백엔드에서 리다이렉트 처리
+    if (redirectSession && response.status === 302) {
+      const redirectUrl = response.headers['location'];
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+    }
+    
+    return response.data.data;
+  }
+
+  // 회원가입
+  async signup(signupData: ExtendedSignupRequest): Promise<SignupResponse> {
+    // 공통패키지 SignupRequest 형식으로 변환 (UI 전용 필드 제거)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { confirmPassword, agreedToTerms, ...apiSignupData } = signupData;
+    const response = await apiClient.post<SignupResponse>('/auth/signup', apiSignupData);
+    return response.data.data;
+  }
+
+
+  // 로그아웃
+  async logout(): Promise<void> {
+    await apiClient.post('/auth/logout');
+  }
+
+  // Google OAuth 로그인 URL 생성
+  getGoogleLoginUrl(redirectSession?: string): string {
+    const params = new URLSearchParams();
+    if (redirectSession) {
+      params.set('redirect_session', redirectSession);
+    }
+    
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
+    return `${baseUrl}/oauth/login-google?${params.toString()}`;
+  }
+
+  // Naver OAuth 로그인 URL 생성
+  getNaverLoginUrl(redirectSession?: string): string {
+    const params = new URLSearchParams();
+    if (redirectSession) {
+      params.set('redirect_session', redirectSession);
+    }
+    
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
+    return `${baseUrl}/oauth/login-naver?${params.toString()}`;
+  }
+
+
+  // 비밀번호 찾기
+  async forgotPassword(data: ForgotPasswordFormData): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', data);
+    return response.data.data;
+  }
+
+  // 비밀번호 재설정
+  async resetPassword(data: ResetPasswordFormData): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', data);
+    return response.data.data;
+  }
+
+  // 이메일 인증 요청
+  async requestEmailVerification(email: string): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/verify-email/request', { email });
+    return response.data.data;
+  }
+
+  // 이메일 인증 확인
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/verify-email/confirm', { token });
+    return response.data.data;
+  }
+
+
+}
+
+// 싱글톤 인스턴스
+export const authService = new AuthService();
