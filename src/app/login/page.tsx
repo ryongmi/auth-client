@@ -169,38 +169,17 @@ function LoginPageContent(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        {/* 헤더 */}
+        {/* 헤더 - 간소화 */}
         <div className="text-center">
-          <div className="inline-flex items-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text text-transparent">
-              KRGeobuk Auth
-            </span>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-700 mb-2">로그인</h2>
-          <p className="text-gray-500">계정에 로그인하여 서비스를 이용하세요</p>
+          <h1 className="text-4xl font-bold text-gray-800 mb-6">로그인</h1>
         </div>
 
         {/* SSO 알림 */}
         {isSSO && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center">
+          <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-center">
               <svg
-                className="w-5 h-5 text-blue-600 mr-2"
+                className="w-5 h-5 text-blue-600 mr-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -209,12 +188,11 @@ function LoginPageContent(): React.JSX.Element {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M9 12l2 2 4-4m6 0l4-4m6 6l-3 3a2 2 0 01-3 0l-3-3m-3 3a2 2 0 01-3 0l-3-3m3-3l3 3"
                 />
               </svg>
-              <p className="text-sm text-blue-800">
-                <strong>다른 서비스</strong>에서 로그인을 요청했습니다. 로그인 후 자동으로
-                이동됩니다.
+              <p className="text-sm text-blue-700 font-medium">
+                연결된 서비스로 자동 이동합니다
               </p>
             </div>
           </div>
@@ -483,24 +461,24 @@ function LoginPageContent(): React.JSX.Element {
           </form>
 
           {/* 구분선 */}
-          <div className="mt-6">
+          <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">또는</span>
+                <span className="px-4 bg-white text-gray-500 font-medium">간편 로그인</span>
               </div>
             </div>
           </div>
 
           {/* 소셜 로그인 버튼 */}
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={isBlocked}
-              className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
@@ -520,14 +498,14 @@ function LoginPageContent(): React.JSX.Element {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Google로 로그인
+              Google
             </button>
 
             <button
               type="button"
               onClick={handleNaverLogin}
               disabled={isBlocked}
-              className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
@@ -535,7 +513,7 @@ function LoginPageContent(): React.JSX.Element {
                   d="M16.273 12.845 7.376 0H0v24h7.726V11.155L16.624 24H24V0h-7.727v12.845z"
                 />
               </svg>
-              Naver로 로그인
+              Naver
             </button>
           </div>
 

@@ -101,31 +101,9 @@ function ResetPasswordPageContent(): React.JSX.Element {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+
         <div className="max-w-md w-full space-y-8">
-          {/* 헤더 */}
-          <div className="text-center">
-            <Link href="/login" className="inline-flex items-center space-x-2 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text text-transparent">
-                KRGeobuk Auth
-              </span>
-            </Link>
-          </div>
 
           {/* 성공 메시지 */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
@@ -179,32 +157,13 @@ function ResetPasswordPageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+
       <div className="max-w-md w-full space-y-8">
-        {/* 헤더 */}
+        {/* 헤더 - 간소화 */}
         <div className="text-center">
-          <Link href="/login" className="inline-flex items-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text text-transparent">
-              KRGeobuk Auth
-            </span>
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-700 mb-2">새 비밀번호 설정</h2>
-          <p className="text-gray-500">안전한 새 비밀번호를 입력해주세요</p>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">새 비밀번호 설정</h1>
+          <p className="text-gray-600">안전한 새 비밀번호를 입력해주세요</p>
         </div>
 
         {/* 비밀번호 재설정 폼 */}
