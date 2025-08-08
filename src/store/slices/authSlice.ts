@@ -52,41 +52,6 @@ export const signupUser = createAsyncThunk<
   }
 });
 
-// 사용자 정보 조회는 auth-client에서 사용하지 않음
-export const fetchCurrentUser = createAsyncThunk<void, void, { rejectValue: AuthError }>(
-  'auth/fetchCurrentUser',
-  async (_, { rejectWithValue }) => {
-    return rejectWithValue({
-      code: 'NOT_SUPPORTED',
-      message: 'User fetching not supported in auth-client',
-    } as AuthError);
-  }
-);
-
-// 토큰 갱신 (auth-client에서는 사용하지 않음, 타입 호환성만 유지)
-export const refreshToken = createAsyncThunk<
-  { accessToken: string; refreshToken: string },
-  void,
-  { rejectValue: AuthError }
->('auth/refreshToken', async (_, { rejectWithValue }) => {
-  // auth-client에서는 토큰 갱신이 필요하지 않음
-  return rejectWithValue({
-    code: 'NOT_SUPPORTED',
-    message: 'Token refresh not supported in auth-client',
-  } as AuthError);
-});
-
-// 인증 상태 초기화 (auth-client에서는 사용하지 않음)
-export const initializeAuth = createAsyncThunk<void, void, { rejectValue: AuthError }>(
-  'auth/initialize',
-  async (_, { rejectWithValue }) => {
-    // auth-client에서는 인증 상태 초기화가 필요하지 않음
-    return rejectWithValue({
-      code: 'NOT_SUPPORTED',
-      message: 'Auth initialization not supported in auth-client',
-    } as AuthError);
-  }
-);
 
 // 로그아웃 (세션 정리만 수행)
 export const logoutUser = createAsyncThunk<void, void, { rejectValue: AuthError }>(
@@ -176,24 +141,6 @@ const authSlice = createSlice({
         state.error = action.payload?.message || '회원가입에 실패했습니다.';
       })
 
-      // 사용자 정보 조회 (auth-client에서는 지원하지 않음)
-      .addCase(fetchCurrentUser.rejected, (state) => {
-        // auth-client에서는 사용자 정보 조회를 지원하지 않음
-        state.error = null;
-      })
-
-      // 토큰 갱신
-      .addCase(refreshToken.fulfilled, () => {
-        // 토큰 갱신 성공, 상태는 그대로 유지
-      })
-      .addCase(refreshToken.rejected, () => {
-        // auth-client에서는 토큰 갱신을 지원하지 않으므로 상태 변경 없음
-      })
-
-      // 인증 초기화 (auth-client에서는 지원하지 않음)
-      .addCase(initializeAuth.rejected, () => {
-        // auth-client에서는 인증 초기화를 지원하지 않음
-      })
 
       // 로그아웃
       .addCase(logoutUser.fulfilled, (state) => {

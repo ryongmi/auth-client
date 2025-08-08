@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { authService } from '@/services/authService';
+import { AuthError } from '@/types';
 
 interface FormData {
   email: string;
@@ -15,6 +16,8 @@ export default function ForgotPasswordPage(): React.JSX.Element {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [lastError, setLastError] = useState<AuthError | null>(null);
   
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -58,11 +61,34 @@ export default function ForgotPasswordPage(): React.JSX.Element {
       setIsLoading(true);
       await authService.forgotPassword(formData);
       setSuccess(true);
-    } catch (error: unknown) {
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || '요청 처리 중 오류가 발생했습니다';
+      setLastError(null);
+    } catch (error) {
+      const authError = error as AuthError;
+      const errorMessage = authError?.message || '요청 처리 중 오류가 발생했습니다';
       setErrors({ submit: errorMessage });
+      setLastError(authError);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 수동 재시도 함수
+  const handleRetry = async (): Promise<void> => {
+    if (!lastError || !lastError.isRetryable) return;
+
+    setIsRetrying(true);
+    setErrors({});
+
+    try {
+      await authService.forgotPassword(formData);
+      setSuccess(true);
+      setLastError(null);
+    } catch (retryError) {
+      const authRetryError = retryError as AuthError;
+      setLastError(authRetryError);
+      setErrors({ submit: authRetryError.message });
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -178,12 +204,12 @@ export default function ForgotPasswordPage(): React.JSX.Element {
               )}
             </div>
 
-            {/* 제출 에러 */}
+            {/* 향상된 에러 표시 */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-600 flex items-center">
+                <div className="flex items-start">
                   <svg
-                    className="w-4 h-4 mr-2"
+                    className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -195,18 +221,50 @@ export default function ForgotPasswordPage(): React.JSX.Element {
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
                     />
                   </svg>
-                  {errors.submit}
-                </p>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 font-medium">
+                      {errors.submit}
+                    </p>
+                    
+                    {/* 재시도 가능한 에러인 경우 재시도 버튼 표시 */}
+                    {lastError?.isRetryable && (
+                      <div className="mt-3">
+                        <button
+                          onClick={handleRetry}
+                          disabled={isRetrying}
+                          className="text-sm text-red-700 hover:text-red-900 font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          {isRetrying ? (
+                            <>
+                              <svg className="animate-spin w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              재시도 중...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              다시 시도
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
             {/* 제출 버튼 */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isRetrying}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {isLoading ? (
+              {isLoading || isRetrying ? (
                 <>
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -227,7 +285,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  전송 중...
+                  {isRetrying ? '재시도 중...' : '전송 중...'}
                 </>
               ) : (
                 <>

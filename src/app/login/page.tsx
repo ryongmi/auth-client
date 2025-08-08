@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser, clearError } from "@/store/slices/authSlice";
 import { authService } from "@/services/authService";
+import { AuthError } from "@/types";
 
 function LoginPageContent(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -16,6 +17,9 @@ function LoginPageContent(): React.JSX.Element {
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(5);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastError, setLastError] = useState<AuthError | null>(null);
 
   // const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,9 +55,38 @@ function LoginPageContent(): React.JSX.Element {
   useEffect(() => {
     if (error) {
       setErrors({ submit: error });
+      setLastError(null); // Redux 에러 우선
       dispatch(clearError());
     }
   }, [error, dispatch]);
+
+  // 수동 재시도 함수
+  const handleRetry = async (): Promise<void> => {
+    if (!lastError || !lastError.isRetryable) return;
+
+    setIsRetrying(true);
+    setErrors({});
+    setRetryCount(prev => prev + 1);
+
+    try {
+      const loginResponse = await dispatch(
+        loginUser({
+          loginData: formData,
+          ...(redirectSession && { redirectSession }),
+        })
+      ).unwrap();
+
+      window.location.href = loginResponse.redirectUrl || "/";
+      setLastError(null);
+      setRetryCount(0);
+    } catch (retryError) {
+      const authRetryError = retryError as AuthError;
+      setLastError(authRetryError);
+      setErrors({ submit: authRetryError.message });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
@@ -138,16 +171,19 @@ function LoginPageContent(): React.JSX.Element {
 
     try {
       // 로그인 처리 (SSO와 일반 로그인 통합)
-      const { redirectUrl } = await dispatch(
+      const loginResponse = await dispatch(
         loginUser({
           loginData: formData,
           ...(redirectSession && { redirectSession }),
         })
       ).unwrap();
 
-      window.location.href = redirectUrl || "/";
-    } catch {
-      // 에러는 Redux slice에서 처리됨
+      window.location.href = loginResponse.redirectUrl || "/";
+      setLastError(null);
+    } catch (loginError) {
+      // 에러는 Redux slice에서 처리되지만, 재시도 가능 여부도 확인
+      const authLoginError = loginError as AuthError;
+      setLastError(authLoginError);
       const remaining = Math.max(0, 5 - loginAttempts - 1);
       setRemainingAttempts(remaining);
     }
@@ -363,12 +399,12 @@ function LoginPageContent(): React.JSX.Element {
               </div>
             </div>
 
-            {/* 제출 에러 */}
+            {/* 향상된 에러 표시 */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-600 flex items-center">
+                <div className="flex items-start">
                   <svg
-                    className="w-4 h-4 mr-2"
+                    className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -380,8 +416,61 @@ function LoginPageContent(): React.JSX.Element {
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
                     />
                   </svg>
-                  {errors.submit}
-                </p>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 font-medium">
+                      {errors.submit}
+                    </p>
+                    
+                    {/* 재시도 가능한 에러인 경우 재시도 버튼 표시 */}
+                    {lastError?.isRetryable && (
+                      <div className="mt-3 flex items-center space-x-3">
+                        <button
+                          onClick={handleRetry}
+                          disabled={isRetrying}
+                          className="text-sm text-red-700 hover:text-red-900 font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          {isRetrying ? (
+                            <>
+                              <svg className="animate-spin w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              재시도 중...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              다시 시도
+                            </>
+                          )}
+                        </button>
+                        {retryCount > 0 && (
+                          <span className="text-xs text-red-600">
+                            ({retryCount}번째 재시도)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 네트워크 에러인 경우 추가 안내 */}
+                    {lastError?.code === 'NETWORK_ERROR' && (
+                      <div className="mt-2 text-xs text-red-600">
+                        • 인터넷 연결을 확인해주세요<br/>
+                        • 방화벽이나 보안 프로그램이 차단하는지 확인해주세요
+                      </div>
+                    )}
+
+                    {/* 서버 에러인 경우 추가 안내 */}
+                    {lastError?.code === 'SERVER_ERROR' && (
+                      <div className="mt-2 text-xs text-red-600">
+                        • 서버 점검 중일 수 있습니다<br/>
+                        • 잠시 후 다시 시도해주세요
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -413,7 +502,7 @@ function LoginPageContent(): React.JSX.Element {
             {/* 로그인 버튼 */}
             <button
               type="submit"
-              disabled={isLoading || isBlocked}
+              disabled={isLoading || isBlocked || isRetrying}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {isBlocked ? (
@@ -433,7 +522,7 @@ function LoginPageContent(): React.JSX.Element {
                   </svg>
                   일시적으로 차단됨
                 </>
-              ) : isLoading ? (
+              ) : isLoading || isRetrying ? (
                 <>
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -454,7 +543,7 @@ function LoginPageContent(): React.JSX.Element {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  로그인 중...
+                  {isRetrying ? '재시도 중...' : '로그인 중...'}
                 </>
               ) : (
                 <>

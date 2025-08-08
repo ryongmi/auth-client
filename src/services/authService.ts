@@ -32,7 +32,7 @@ export class AuthService {
       : '/auth/signup';
 
     const response = await apiClient.post<SignupResponse>(url, apiSignupData);
-    return response.data.data.redirectUrl;
+    return response.data.data;
   }
 
   // 로그아웃

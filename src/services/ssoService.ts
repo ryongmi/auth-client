@@ -38,32 +38,6 @@ export class SSOService {
 
 
 
-  /**
-   * 세션 관련 쿠키 정리 (토큰은 서버에서 HTTP-only로 관리)
-   */
-  private clearSessionCookies(): void {
-    const cookieOptions = {
-      domain: `.${this.domain}`,
-      path: '/',
-    };
-
-    // 세션 관련 쿠키만 정리
-    document.cookie = `session-id=; expires=Thu, 01 Jan 1970 00:00:00 GMT; ${this.formatCookieOptions(cookieOptions)}`;
-    document.cookie = `csrf-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; ${this.formatCookieOptions(cookieOptions)}`;
-  }
-
-
-  /**
-   * 쿠키 옵션을 문자열로 포맷
-   */
-  private formatCookieOptions(options: { domain?: string; path?: string; secure?: boolean; sameSite?: string }): string {
-    const parts: string[] = [];
-    if (options.domain) parts.push(`domain=${options.domain}`);
-    if (options.path) parts.push(`path=${options.path}`);
-    if (options.secure) parts.push('secure');
-    if (options.sameSite) parts.push(`samesite=${options.sameSite}`);
-    return parts.join('; ');
-  }
 
 
 

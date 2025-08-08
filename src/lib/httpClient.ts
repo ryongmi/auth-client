@@ -4,6 +4,7 @@
 import type { ApiResponse, HttpClientConfig } from '@krgeobuk/http-client/types';
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AuthError } from '@/types';
 
 // auth-client 전용 HTTP 클라이언트 설정 (토큰 관리 없음)
 const authClientConfig: HttpClientConfig = {
@@ -18,48 +19,155 @@ const authClientConfig: HttpClientConfig = {
 
 const axiosInstance: AxiosInstance = axios.create(authClientConfig);
 
-// 공통패키지 스타일 에러 처리 인터셉터
+// 향상된 에러 처리 인터셉터
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 공통패키지와 동일한 에러 형태로 변환
-    const errorResponse = {
-      code: error.response?.data?.code || 'UNKNOWN_ERROR',
-      message: error.response?.data?.message || '알 수 없는 오류가 발생했습니다.',
-      statusCode: error.response?.status || 500,
-      data: error.response?.data?.data || null,
-    };
+    let errorResponse;
+
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      // 타임아웃 에러
+      errorResponse = {
+        code: 'TIMEOUT_ERROR',
+        message: '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+        statusCode: 408,
+        data: null,
+        isRetryable: true,
+      };
+    } else if (error.code === 'ERR_NETWORK' || !error.response) {
+      // 네트워크 에러 (서버 연결 불가)
+      errorResponse = {
+        code: 'NETWORK_ERROR',
+        message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.',
+        statusCode: 0,
+        data: null,
+        isRetryable: true,
+      };
+    } else {
+      // 서버 응답이 있는 경우
+      const status = error.response.status;
+      const serverData = error.response.data;
+
+      if (status >= 500) {
+        // 서버 내부 오류
+        errorResponse = {
+          code: serverData?.code || 'SERVER_ERROR',
+          message: '일시적인 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          statusCode: status,
+          data: serverData?.data || null,
+          isRetryable: true,
+        };
+      } else if (status === 401) {
+        // 인증 오류
+        errorResponse = {
+          code: serverData?.code || 'UNAUTHORIZED',
+          message: '로그인이 필요합니다.',
+          statusCode: status,
+          data: serverData?.data || null,
+          isRetryable: false,
+        };
+      } else if (status === 403) {
+        // 권한 오류
+        errorResponse = {
+          code: serverData?.code || 'FORBIDDEN',
+          message: '접근 권한이 없습니다.',
+          statusCode: status,
+          data: serverData?.data || null,
+          isRetryable: false,
+        };
+      } else if (status === 429) {
+        // 요청 한도 초과
+        errorResponse = {
+          code: serverData?.code || 'TOO_MANY_REQUESTS',
+          message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.',
+          statusCode: status,
+          data: serverData?.data || null,
+          isRetryable: true,
+        };
+      } else {
+        // 기타 클라이언트 오류
+        errorResponse = {
+          code: serverData?.code || 'CLIENT_ERROR',
+          message: serverData?.message || '요청을 처리할 수 없습니다.',
+          statusCode: status,
+          data: serverData?.data || null,
+          isRetryable: false,
+        };
+      }
+    }
+
+    // 개발 환경에서만 상세 로깅
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.error('[HTTP Error]', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        code: errorResponse.code,
+        message: errorResponse.message,
+      });
+    }
+
     return Promise.reject(errorResponse);
   }
 );
 
-// auth-client 전용 API 클라이언트 (공통패키지 타입 사용)
+// 재시도 설정
+const RETRY_CONFIG = {
+  maxRetries: 2,
+  retryDelay: 1000, // 1초
+  retryableErrors: ['TIMEOUT_ERROR', 'NETWORK_ERROR', 'SERVER_ERROR', 'TOO_MANY_REQUESTS'],
+};
+
+// 재시도 로직이 포함된 요청 함수
+const requestWithRetry = async <T>(
+  requestFn: () => Promise<AxiosResponse<ApiResponse<T>>>,
+  retryCount = 0
+): Promise<AxiosResponse<ApiResponse<T>>> => {
+  try {
+    return await requestFn();
+  } catch (error) {
+    // 에러 객체의 타입을 명시적으로 캐스팅
+    const authError = error as AuthError & { config?: { url?: string } };
+    const shouldRetry = 
+      retryCount < RETRY_CONFIG.maxRetries && 
+      authError.isRetryable && 
+      RETRY_CONFIG.retryableErrors.includes(authError.code);
+
+    if (shouldRetry) {
+      // 지수 백오프: 재시도할 때마다 지연 시간 증가
+      const delay = RETRY_CONFIG.retryDelay * Math.pow(2, retryCount);
+      
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.warn(`[HTTP Retry] ${retryCount + 1}/${RETRY_CONFIG.maxRetries} - ${delay}ms 후 재시도`, {
+          url: authError.config?.url,
+          code: authError.code,
+        });
+      }
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return requestWithRetry(requestFn, retryCount + 1);
+    }
+
+    throw error;
+  }
+};
+
+// auth-client 전용 API 클라이언트 (GET/POST만 사용, 재시도 포함)
 export const apiClient = {
   get: <T = unknown>(
     url: string,
     config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.get<ApiResponse<T>>(url, config),
+  ): Promise<AxiosResponse<ApiResponse<T>>> =>
+    requestWithRetry(() => axiosInstance.get<ApiResponse<T>>(url, config)),
+
   post: <T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<ApiResponse<T>>> =>
-    axiosInstance.post<ApiResponse<T>>(url, data, config),
-  put: <T = unknown>(
-    url: string,
-    data?: unknown,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.put<ApiResponse<T>>(url, data, config),
-  delete: <T = unknown>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.delete<ApiResponse<T>>(url, config),
-  patch: <T = unknown>(
-    url: string,
-    data?: unknown,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> =>
-    axiosInstance.patch<ApiResponse<T>>(url, data, config),
+    requestWithRetry(() => axiosInstance.post<ApiResponse<T>>(url, data, config)),
 };
 
 // auth-client 전용 쿠키 유틸리티 함수들
