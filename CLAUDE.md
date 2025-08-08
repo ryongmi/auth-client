@@ -11,12 +11,13 @@ auth-client는 krgeobuk 생태계의 중앙 인증 서비스로, auth.krgeobuk.c
 - **SSO 허브**: 중앙 집중식 인증을 통한 서비스 간 seamless 연동
 - **Next.js 15**: App Router 기반의 최신 React 아키텍처
 - **Redux Toolkit**: 복잡한 인증 상태 관리
+- **강화된 에러 처리**: 포괄적인 네트워크 오류 처리 및 자동 재시도 시스템
 
 ## 핵심 명령어
 
 ### 개발
 ```bash
-# 개발 서버 시작 (포트 3001)
+# 개발 서버 시작 (포트 3000)
 npm run dev
 
 # 프로덕션 빌드
@@ -34,8 +35,8 @@ npm run type-check
 # 린팅
 npm run lint
 
-# 코드 포맷팅 (Prettier 적용 시)
-npm run format
+# 자동 lint 수정
+npm run lint --fix
 ```
 
 ### Docker
@@ -43,8 +44,8 @@ npm run format
 # 이미지 빌드
 docker build -t auth-client .
 
-# 컨테이너 실행
-docker run -p 3001:3000 --env-file .env.local auth-client
+# 컨테이너 실행 (포트 3000에서 서비스)
+docker run -p 3000:3000 --env-file .env.local auth-client
 ```
 
 ## 개발 표준
@@ -131,7 +132,79 @@ export class SSOService {
 document.cookie = `krgeobuk_access_token=${token}; domain=.krgeobuk.com; secure; samesite=strict`;
 ```
 
-### 4. 보안 구현 표준
+### 4. 에러 처리 시스템
+
+#### HTTP 클라이언트 에러 처리
+```typescript
+// httpClient.ts에서 자동 에러 분류 및 처리
+const errorResponse = {
+  code: 'NETWORK_ERROR',
+  message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.',
+  statusCode: 0,
+  isRetryable: true, // 재시도 가능 여부
+};
+```
+
+#### 자동 재시도 메커니즘
+```typescript
+// 지수 백오프 재시도 (최대 2회)
+const RETRY_CONFIG = {
+  maxRetries: 2,
+  retryDelay: 1000, // 1초
+  retryableErrors: ['TIMEOUT_ERROR', 'NETWORK_ERROR', 'SERVER_ERROR', 'TOO_MANY_REQUESTS'],
+};
+
+// 재시도 로직
+const delay = RETRY_CONFIG.retryDelay * Math.pow(2, retryCount);
+await new Promise(resolve => setTimeout(resolve, delay));
+```
+
+#### 사용자 친화적 에러 표시
+```typescript
+// 에러 상태별 적절한 UI 표시
+{errors.submit && (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div className="flex items-start">
+      <svg className="w-5 h-5 text-red-500 mr-2">...</svg>
+      <div className="flex-1">
+        <p className="text-sm text-red-800 font-medium">
+          {errors.submit}
+        </p>
+        
+        {/* 재시도 가능한 에러인 경우 재시도 버튼 표시 */}
+        {lastError?.isRetryable && (
+          <button onClick={handleRetry} disabled={isRetrying}>
+            다시 시도
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+```
+
+#### 수동 재시도 구현
+```typescript
+// 컴포넌트별 수동 재시도 패턴
+const handleRetry = async (): Promise<void> => {
+  if (!lastError || !lastError.isRetryable) return;
+
+  setIsRetrying(true);
+  setErrors({});
+
+  try {
+    await dispatch(authAction(formData)).unwrap();
+    setLastError(null);
+  } catch (retryError: any) {
+    setLastError(retryError);
+    setErrors({ submit: retryError.message });
+  } finally {
+    setIsRetrying(false);
+  }
+};
+```
+
+### 5. 보안 구현 표준
 
 #### 입력 검증
 ```typescript
@@ -170,9 +243,30 @@ if (suspiciousPatterns.some(pattern => pattern.test(value))) {
   }}
   aria-hidden="true"
 />
+
+// 폼 검증 시 Honeypot 확인
+if (honeypotRef.current?.value) {
+  newErrors.submit = '비정상적인 요청이 감지되었습니다.';
+  return false;
+}
 ```
 
-### 5. OAuth 콜백 처리
+#### Rate Limiting 표시
+```typescript
+// 로그인 시도 횟수 관리
+const [remainingAttempts, setRemainingAttempts] = useState(5);
+
+// 경고 표시
+{remainingAttempts <= 2 && remainingAttempts > 0 && (
+  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <p className="text-sm text-yellow-800">
+      <strong>경고:</strong> 남은 로그인 시도 횟수: {remainingAttempts}회
+    </p>
+  </div>
+)}
+```
+
+### 6. OAuth 콜백 처리
 
 #### 표준 콜백 페이지 구조
 ```typescript
@@ -214,21 +308,28 @@ export default function GoogleCallbackPage(): JSX.Element {
 
 ### 환경 변수 구성
 ```bash
-# API 서버 연동
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+# auth-server 연동 (필수)
 NEXT_PUBLIC_AUTH_SERVER_URL=http://localhost:8000
 
 # SSO 도메인 설정
 NEXT_PUBLIC_DOMAIN=krgeobuk.com
 
-# OAuth 클라이언트 설정
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-NEXT_PUBLIC_NAVER_CLIENT_ID=your_naver_client_id
+# 애플리케이션 URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# 서비스 URL 설정 
-NEXT_PUBLIC_APP_URL=http://localhost:3001
-NEXT_PUBLIC_PORTAL_CLIENT_URL=http://localhost:3000
-NEXT_PUBLIC_PORTAL_ADMIN_URL=http://localhost:3002
+# 개발 환경 설정
+NODE_ENV=development
+```
+
+### 추가 환경 변수 (프로덕션)
+```bash
+# 프로덕션 환경
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+
+# 보안 강화
+NEXT_PUBLIC_AUTH_SERVER_URL=https://auth-server.krgeobuk.com
+NEXT_PUBLIC_DOMAIN=krgeobuk.com
 ```
 
 ### Next.js 설정
@@ -256,30 +357,38 @@ const nextConfig: NextConfig = {
 
 ### auth-server API 통신
 ```typescript
-// HTTP 클라이언트 설정
-export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+// HTTP 클라이언트 설정 (httpClient.ts)
+const authClientConfig: HttpClientConfig = {
+  baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
   timeout: 10000,
-  withCredentials: true // 쿠키 포함
-});
+  withCredentials: true, // HTTP-only 쿠키 지원
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+};
 
-// 요청 인터셉터 - 토큰 자동 첨부
-apiClient.interceptors.request.use((config) => {
-  const token = getCookie('krgeobuk_access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// 자동 재시도 시스템 포함
+export const apiClient = {
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+    requestWithRetry(() => axiosInstance.get<ApiResponse<T>>(url, config)),
+    
+  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    requestWithRetry(() => axiosInstance.post<ApiResponse<T>>(url, data, config)),
+};
 ```
 
-### 주요 API 엔드포인트
+### 주요 API 엔드포인트 (실제 구현됨)
 - `POST /auth/login` - 일반 로그인
 - `POST /auth/signup` - 회원가입  
-- `POST /auth/sso-login` - SSO 로그인
-- `GET /oauth/login-google` - Google OAuth 시작
-- `GET /oauth/login-naver` - Naver OAuth 시작
-- `POST /auth/refresh` - 토큰 갱신
+- `POST /auth/logout` - 로그아웃
+- `POST /auth/forgot-password` - 비밀번호 찾기
+- `POST /auth/reset-password` - 비밀번호 재설정
+- `POST /auth/verify-email/request` - 이메일 인증 요청
+- `POST /auth/verify-email/confirm` - 이메일 인증 확인
+- `GET /oauth/login-google` - Google OAuth 시작 (쿼리 파라미터: redirect_session)
+- `GET /oauth/login-naver` - Naver OAuth 시작 (쿼리 파라미터: redirect_session)
+- `POST /auth/sso/login` - SSO 로그인 (sessionId 포함)
 
 ## 개발 워크플로우
 
@@ -292,15 +401,17 @@ apiClient.interceptors.request.use((config) => {
 
 ### 2. 코드 품질 체크
 - **타입 안전성**: `npm run type-check` 통과
-- **린팅**: ESLint 규칙 준수
-- **보안**: 입력 검증 및 XSS 방지
+- **린팅**: ESLint 규칙 준수 (`npm run lint`)
+- **보안**: 입력 검증, Honeypot, Rate limiting
+- **에러 처리**: 자동 재시도 및 사용자 친화적 메시지
 - **성능**: React.memo, useMemo, useCallback 적절히 사용
 
 ### 3. 통합 테스트
-- auth-server 연동 확인
-- OAuth 플로우 테스트
-- SSO 리다이렉트 검증
-- 쿠키 도메인 설정 확인
+- **auth-server 연동**: API 엔드포인트 호출 확인
+- **OAuth 플로우**: Google/Naver 로그인 테스트
+- **SSO 리다이렉트**: 다른 서비스 간 인증 상태 동기화
+- **에러 처리**: 네트워크 오류 시 재시도 동작 확인
+- **보안**: Honeypot, Rate limiting 동작 확인
 
 ## 문제 해결
 
@@ -315,7 +426,12 @@ apiClient.interceptors.request.use((config) => {
 - 리다이렉트 URI 일치 여부 검증
 - 상태 값(state) 유효성 검사
 
-#### 3. SSO 쿠키 문제
+#### 3. 에러 처리 관련 문제
+- **자동 재시도 실패**: RETRY_CONFIG 설정 및 isRetryable 플래그 확인
+- **수동 재시도 버튼 미표시**: lastError?.isRetryable 조건 검증
+- **에러 메시지 미표시**: httpClient.ts 에러 인터셉터 로직 확인
+
+#### 4. SSO 쿠키 문제
 - 도메인 설정 확인 (`.krgeobuk.com`)
 - Secure/SameSite 설정 검증
 - 브라우저 개발자 도구에서 쿠키 확인
@@ -324,6 +440,7 @@ apiClient.interceptors.request.use((config) => {
 - **브라우저 개발자 도구**: 네트워크, 쿠키, 콘솔 확인
 - **Redux DevTools**: 상태 변화 추적
 - **auth-server 로그**: 백엔드 에러 확인
+- **에러 처리 로그**: 개발 환경에서 httpClient.ts 에러 로깅 확인
 
 ## 보안 고려사항
 
