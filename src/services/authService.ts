@@ -1,40 +1,39 @@
 import { apiClient } from '@/lib/httpClient';
-import { 
-  LoginRequest, 
-  LoginResponse, 
-  ExtendedSignupRequest, 
-  SignupResponse,
+import {
+  LoginRequest,
+  ExtendedSignupRequest,
   ForgotPasswordFormData,
-  ResetPasswordFormData
+  ResetPasswordFormData,
+  SignupResponse,
+  LoginResponse,
 } from '@/types';
 
 export class AuthService {
   // 로그인 (SSO 지원)
-  async login(loginData: LoginRequest, redirectSession?: string): Promise<LoginResponse | void> {
+  async login(loginData: LoginRequest, redirectSession?: string): Promise<LoginResponse> {
     const url = redirectSession ? `/auth/login?redirect_session=${redirectSession}` : '/auth/login';
+
     const response = await apiClient.post<LoginResponse>(url, loginData);
-    
-    // SSO 리다이렉트의 경우 백엔드에서 리다이렉트 처리
-    if (redirectSession && response.status === 302) {
-      const redirectUrl = response.headers['location'];
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-        return;
-      }
-    }
-    
+
     return response.data.data;
   }
 
   // 회원가입
-  async signup(signupData: ExtendedSignupRequest): Promise<SignupResponse> {
+  async signup(
+    signupData: ExtendedSignupRequest,
+    redirectSession?: string
+  ): Promise<SignupResponse> {
     // 공통패키지 SignupRequest 형식으로 변환 (UI 전용 필드 제거)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword, agreedToTerms, ...apiSignupData } = signupData;
-    const response = await apiClient.post<SignupResponse>('/auth/signup', apiSignupData);
-    return response.data.data;
-  }
 
+    const url = redirectSession
+      ? `/auth/signup?redirect_session=${redirectSession}`
+      : '/auth/signup';
+
+    const response = await apiClient.post<SignupResponse>(url, apiSignupData);
+    return response.data.data.redirectUrl;
+  }
 
   // 로그아웃
   async logout(): Promise<void> {
@@ -47,7 +46,7 @@ export class AuthService {
     if (redirectSession) {
       params.set('redirect_session', redirectSession);
     }
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
     return `${baseUrl}/oauth/login-google?${params.toString()}`;
   }
@@ -58,11 +57,10 @@ export class AuthService {
     if (redirectSession) {
       params.set('redirect_session', redirectSession);
     }
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
     return `${baseUrl}/oauth/login-naver?${params.toString()}`;
   }
-
 
   // 비밀번호 찾기
   async forgotPassword(data: ForgotPasswordFormData): Promise<{ message: string }> {
@@ -78,17 +76,19 @@ export class AuthService {
 
   // 이메일 인증 요청
   async requestEmailVerification(email: string): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/verify-email/request', { email });
+    const response = await apiClient.post<{ message: string }>('/auth/verify-email/request', {
+      email,
+    });
     return response.data.data;
   }
 
   // 이메일 인증 확인
   async verifyEmail(token: string): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/verify-email/confirm', { token });
+    const response = await apiClient.post<{ message: string }>('/auth/verify-email/confirm', {
+      token,
+    });
     return response.data.data;
   }
-
-
 }
 
 // 싱글톤 인스턴스

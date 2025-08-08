@@ -1,39 +1,41 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loginUser, clearError } from '@/store/slices/authSlice';
-import { authService } from '@/services/authService';
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loginUser, clearError } from "@/store/slices/authSlice";
+import { authService } from "@/services/authService";
 
 function LoginPageContent(): React.JSX.Element {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(5);
-  
-  const router = useRouter();
+
+  // const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const formRef = useRef<HTMLFormElement>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
-  
-  const { isLoading, error, isBlocked, loginAttempts } = useAppSelector((state) => state.auth);
+
+  const { isLoading, error, isBlocked, loginAttempts } = useAppSelector(
+    (state) => state.auth
+  );
 
   // SSO 리다이렉트 세션 확인
   useEffect(() => {
     // URL 파라미터에서 SSO 세션 정보 확인
-    const session = searchParams.get('redirect-session');
-    
+    const session = searchParams.get("redirect_session");
+
     if (session) {
       // 세션 ID 유효성 검증
       if (!/^[a-zA-Z0-9_-]{20,}$/.test(session)) {
-        setErrors({ submit: '잘못된 SSO 세션입니다.' });
+        setErrors({ submit: "잘못된 SSO 세션입니다." });
         return;
       }
 
@@ -60,7 +62,7 @@ function LoginPageContent(): React.JSX.Element {
     if (value.length > 254) {
       setErrors((prev) => ({
         ...prev,
-        [name]: '입력값이 너무 깁니다.',
+        [name]: "입력값이 너무 깁니다.",
       }));
       return;
     }
@@ -77,7 +79,7 @@ function LoginPageContent(): React.JSX.Element {
     if (suspiciousPatterns.some((pattern) => pattern.test(value))) {
       setErrors((prev) => ({
         ...prev,
-        [name]: '잘못된 입력 형식입니다.',
+        [name]: "잘못된 입력 형식입니다.",
       }));
       return;
     }
@@ -91,7 +93,7 @@ function LoginPageContent(): React.JSX.Element {
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: '',
+        [name]: "",
       }));
     }
   };
@@ -101,27 +103,28 @@ function LoginPageContent(): React.JSX.Element {
 
     // Honeypot 검사 (봇 탐지)
     if (honeypotRef.current?.value) {
-      newErrors.submit = '비정상적인 요청이 감지되었습니다.';
+      newErrors.submit = "비정상적인 요청이 감지되었습니다.";
       return false;
     }
 
     if (!formData.email) {
-      newErrors.email = '이메일을 입력해주세요';
+      newErrors.email = "이메일을 입력해주세요";
     } else {
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      const emailRegex =
+        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
       if (!emailRegex.test(formData.email)) {
-        newErrors.email = '올바른 이메일 형식을 입력해주세요';
+        newErrors.email = "올바른 이메일 형식을 입력해주세요";
       } else if (formData.email.length > 254) {
-        newErrors.email = '이메일 주소가 너무 깁니다';
+        newErrors.email = "이메일 주소가 너무 깁니다";
       }
     }
 
     if (!formData.password) {
-      newErrors.password = '비밀번호를 입력해주세요';
+      newErrors.password = "비밀번호를 입력해주세요";
     } else if (formData.password.length < 6) {
-      newErrors.password = '비밀번호는 최소 6자 이상이어야 합니다';
+      newErrors.password = "비밀번호는 최소 6자 이상이어야 합니다";
     } else if (formData.password.length > 128) {
-      newErrors.password = '비밀번호가 너무 깁니다';
+      newErrors.password = "비밀번호가 너무 깁니다";
     }
 
     setErrors(newErrors);
@@ -135,16 +138,14 @@ function LoginPageContent(): React.JSX.Element {
 
     try {
       // 로그인 처리 (SSO와 일반 로그인 통합)
-      const result = await dispatch(loginUser({ 
-        loginData: formData, 
-        ...(redirectSession && { redirectSession }) 
-      })).unwrap();
-      
-      // SSO가 아닌 경우에만 페이지 이동
-      if (!redirectSession && result) {
-        router.push('/');
-      }
-      // SSO의 경우 백엔드에서 리다이렉트 처리
+      const { redirectUrl } = await dispatch(
+        loginUser({
+          loginData: formData,
+          ...(redirectSession && { redirectSession }),
+        })
+      ).unwrap();
+
+      window.location.href = redirectUrl || "/";
     } catch {
       // 에러는 Redux slice에서 처리됨
       const remaining = Math.max(0, 5 - loginAttempts - 1);
@@ -154,14 +155,16 @@ function LoginPageContent(): React.JSX.Element {
 
   // Google 로그인 처리
   const handleGoogleLogin = (): void => {
-    const redirectSession = searchParams.get('redirect-session');
-    const googleUrl = authService.getGoogleLoginUrl(redirectSession || undefined);
+    const redirectSession = searchParams.get("redirect_session");
+    const googleUrl = authService.getGoogleLoginUrl(
+      redirectSession || undefined
+    );
     window.location.href = googleUrl;
   };
 
   // Naver 로그인 처리
   const handleNaverLogin = (): void => {
-    const redirectSession = searchParams.get('redirect-session');
+    const redirectSession = searchParams.get("redirect_session");
     const naverUrl = authService.getNaverLoginUrl(redirectSession || undefined);
     window.location.href = naverUrl;
   };
@@ -209,18 +212,21 @@ function LoginPageContent(): React.JSX.Element {
               tabIndex={-1}
               autoComplete="off"
               style={{
-                position: 'absolute',
-                left: '-9999px',
-                top: '-9999px',
+                position: "absolute",
+                left: "-9999px",
+                top: "-9999px",
                 opacity: 0,
-                pointerEvents: 'none',
+                pointerEvents: "none",
               }}
               aria-hidden="true"
             />
-            
+
             {/* 이메일 */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-600 mb-2"
+              >
                 이메일 주소
               </label>
               <div className="relative">
@@ -246,7 +252,9 @@ function LoginPageContent(): React.JSX.Element {
                   value={formData.email}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                    errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
+                    errors.email
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 bg-white"
                   }`}
                   placeholder="이메일을 입력하세요"
                 />
@@ -273,7 +281,10 @@ function LoginPageContent(): React.JSX.Element {
 
             {/* 비밀번호 */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-600 mb-2"
+              >
                 비밀번호
               </label>
               <div className="relative">
@@ -299,7 +310,9 @@ function LoginPageContent(): React.JSX.Element {
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                    errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
+                    errors.password
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 bg-white"
                   }`}
                   placeholder="비밀번호를 입력하세요"
                 />
@@ -333,7 +346,10 @@ function LoginPageContent(): React.JSX.Element {
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-600"
+                >
                   로그인 유지
                 </label>
               </div>
@@ -387,7 +403,8 @@ function LoginPageContent(): React.JSX.Element {
                     />
                   </svg>
                   <p className="text-sm text-yellow-800">
-                    <strong>경고:</strong> 남은 로그인 시도 횟수: {remainingAttempts}회
+                    <strong>경고:</strong> 남은 로그인 시도 횟수:{" "}
+                    {remainingAttempts}회
                   </p>
                 </div>
               </div>
@@ -467,7 +484,9 @@ function LoginPageContent(): React.JSX.Element {
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500 font-medium">간편 로그인</span>
+                <span className="px-4 bg-white text-gray-500 font-medium">
+                  간편 로그인
+                </span>
               </div>
             </div>
           </div>
@@ -520,7 +539,7 @@ function LoginPageContent(): React.JSX.Element {
           {/* 회원가입 링크 */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
-              아직 계정이 없으신가요?{' '}
+              아직 계정이 없으신가요?{" "}
               <Link
                 href="/register"
                 className="text-blue-500 hover:text-blue-400 font-medium transition-colors"

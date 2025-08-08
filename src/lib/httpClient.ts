@@ -35,22 +35,37 @@ axiosInstance.interceptors.response.use(
 
 // auth-client 전용 API 클라이언트 (공통패키지 타입 사용)
 export const apiClient = {
-  get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
-    axiosInstance.get<ApiResponse<T>>(url, config),
-  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
+  get: <T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.get<ApiResponse<T>>(url, config),
+  post: <T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<ApiResponse<T>>> =>
     axiosInstance.post<ApiResponse<T>>(url, data, config),
-  put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
-    axiosInstance.put<ApiResponse<T>>(url, data, config),
-  delete: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
-    axiosInstance.delete<ApiResponse<T>>(url, config),
-  patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> => 
+  put: <T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.put<ApiResponse<T>>(url, data, config),
+  delete: <T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<ApiResponse<T>>> => axiosInstance.delete<ApiResponse<T>>(url, config),
+  patch: <T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<ApiResponse<T>>> =>
     axiosInstance.patch<ApiResponse<T>>(url, data, config),
 };
 
 // auth-client 전용 쿠키 유틸리티 함수들
 export const getCookie = (name: string): string | null => {
   if (typeof document === 'undefined') return null;
-  
+
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
@@ -59,44 +74,51 @@ export const getCookie = (name: string): string | null => {
   return null;
 };
 
-export const setCookie = (name: string, value: string, options: {
-  expires?: Date;
-  domain?: string;
-  path?: string;
-  secure?: boolean;
-  sameSite?: 'strict' | 'lax' | 'none';
-} = {}): void => {
+export const setCookie = (
+  name: string,
+  value: string,
+  options: {
+    expires?: Date;
+    domain?: string;
+    path?: string;
+    secure?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+  } = {}
+): void => {
   if (typeof document === 'undefined') return;
-  
+
   let cookieString = `${name}=${value}`;
-  
+
   if (options.expires) {
     cookieString += `; expires=${options.expires.toUTCString()}`;
   }
-  
+
   if (options.domain) {
     cookieString += `; domain=${options.domain}`;
   }
-  
+
   if (options.path) {
     cookieString += `; path=${options.path}`;
   }
-  
+
   if (options.secure) {
     cookieString += '; secure';
   }
-  
+
   if (options.sameSite) {
     cookieString += `; samesite=${options.sameSite}`;
   }
-  
+
   document.cookie = cookieString;
 };
 
-export const deleteCookie = (name: string, options: {
-  domain?: string;
-  path?: string;
-} = {}): void => {
+export const deleteCookie = (
+  name: string,
+  options: {
+    domain?: string;
+    path?: string;
+  } = {}
+): void => {
   setCookie(name, '', {
     ...options,
     expires: new Date(0),
@@ -107,22 +129,21 @@ export const deleteCookie = (name: string, options: {
 // 필요시 세션 정리를 위한 최소한의 함수만 유지
 export const clearAuthCookies = (): void => {
   // CSRF 토큰 등 기본 쿠키만 정리
-  deleteCookie('csrf-token', { 
+  deleteCookie('csrf-token', {
     domain: '.krgeobuk.com',
-    path: '/' 
+    path: '/',
   });
-  
+
   // 세션 관련 쿠키 정리
-  deleteCookie('session-id', { 
+  deleteCookie('session-id', {
     domain: '.krgeobuk.com',
-    path: '/' 
+    path: '/',
   });
 };
 
 // SSO 관련 유틸리티 함수들
 export const generateSSOSession = (): string => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
 export const getSSORedirectUrl = (sessionId: string, redirectUri: string): string => {
@@ -130,7 +151,7 @@ export const getSSORedirectUrl = (sessionId: string, redirectUri: string): strin
     'redirect-session': sessionId,
     'redirect-uri': redirectUri,
   });
-  
+
   return `${window.location.origin}/login?${params.toString()}`;
 };
 
