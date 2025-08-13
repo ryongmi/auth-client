@@ -26,7 +26,6 @@
     "@eslint/js": "^9.27.0",
     "@krgeobuk/eslint-config": "^1.0.0",
     "@krgeobuk/tsconfig": "^1.0.0",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -39,7 +38,7 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.33.2 || ^8.0.0",
     "postcss": "^8.4.24",
-    "tailwindcss": "^4",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5",
     "typescript-eslint": "^8.32.1"
   }
