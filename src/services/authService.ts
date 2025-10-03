@@ -35,11 +35,6 @@ export class AuthService {
     return response.data;
   }
 
-  // 로그아웃
-  async logout(): Promise<void> {
-    await authApi.post('/auth/logout');
-  }
-
   // Google OAuth 로그인 URL 생성
   getGoogleLoginUrl(redirectSession?: string): string {
     const params = new URLSearchParams();
@@ -47,8 +42,8 @@ export class AuthService {
       params.set('redirect_session', redirectSession);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
-    return `${baseUrl}/oauth/login-google?${params.toString()}`;
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://krgeobuk.local:8000';
+    return `${baseUrl}/api/oauth/login-google?${params.toString()}`;
   }
 
   // Naver OAuth 로그인 URL 생성
@@ -58,8 +53,8 @@ export class AuthService {
       params.set('redirect_session', redirectSession);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
-    return `${baseUrl}/oauth/login-naver?${params.toString()}`;
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://krgeobuk.local:8000';
+    return `${baseUrl}/api/oauth/login-naver?${params.toString()}`;
   }
 
   // 비밀번호 찾기

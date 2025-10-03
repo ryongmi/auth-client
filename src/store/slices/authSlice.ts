@@ -7,7 +7,6 @@ import {
   AuthError,
   LoginResponse,
 } from '@/types';
-import { clearAuthCookies } from '@/lib/httpClient';
 
 interface AuthState {
   isLoading: boolean;
@@ -51,22 +50,6 @@ export const signupUser = createAsyncThunk<
     return rejectWithValue(error as AuthError);
   }
 });
-
-
-// 로그아웃 (세션 정리만 수행)
-export const logoutUser = createAsyncThunk<void, void, { rejectValue: AuthError }>(
-  'auth/logout',
-  async (_, { rejectWithValue }) => {
-    try {
-      await authService.logout();
-      clearAuthCookies(); // 토큰이 아닌 세션 쿠키만 정리
-    } catch (error) {
-      // 로그아웃 실패해도 쿠키는 정리
-      clearAuthCookies();
-      return rejectWithValue(error as AuthError);
-    }
-  }
-);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -139,14 +122,6 @@ const authSlice = createSlice({
       .addCase(signupUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.message || '회원가입에 실패했습니다.';
-      })
-
-
-      // 로그아웃
-      .addCase(logoutUser.fulfilled, (state) => {
-        state.error = null;
-        state.loginAttempts = 0;
-        state.isBlocked = false;
       });
   },
 });
