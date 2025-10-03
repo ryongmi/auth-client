@@ -1,176 +1,80 @@
-// ============================================================================
-// 공통패키지 타입
-// ============================================================================
-import type { ApiResponse, HttpClientConfig } from '@krgeobuk/http-client/types';
+import { HttpClient } from '@krgeobuk/http-client';
+import type { ApiResponse } from '@krgeobuk/http-client/types';
+import type { AxiosRequestConfig } from 'axios';
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { AuthError } from '@/types';
-
-// auth-client 전용 HTTP 클라이언트 설정 (토큰 관리 없음)
-const authClientConfig: HttpClientConfig = {
-  baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
-  timeout: 10000,
-  withCredentials: true, // HTTP-only 쿠키 지원
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+// auth-client 전용 HTTP 클라이언트 설정 (단일 서버 + SSO 특화)
+export const httpClient = new HttpClient(
+  {
+    auth: {
+      baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
+      timeout: 10000,
+      withCredentials: true, // HTTP-only 쿠키 지원
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    },
+    // auth-client는 auth 서버만 사용하지만 타입 호환성을 위해 더미 설정 추가
+    authz: {
+      baseURL: 'http://localhost:8100', // 사용하지 않음
+    },
+    portal: {
+      baseURL: 'http://localhost:8200', // 사용하지 않음
+    },
+    mypick: {
+      baseURL: 'http://localhost:4000', // 사용하지 않음
+    },
   },
-};
-
-const axiosInstance: AxiosInstance = axios.create(authClientConfig);
-
-// 향상된 에러 처리 인터셉터
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    let errorResponse;
-
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      // 타임아웃 에러
-      errorResponse = {
-        code: 'TIMEOUT_ERROR',
-        message: '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
-        statusCode: 408,
-        data: null,
-        isRetryable: true,
-      };
-    } else if (error.code === 'ERR_NETWORK' || !error.response) {
-      // 네트워크 에러 (서버 연결 불가)
-      errorResponse = {
-        code: 'NETWORK_ERROR',
-        message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.',
-        statusCode: 0,
-        data: null,
-        isRetryable: true,
-      };
-    } else {
-      // 서버 응답이 있는 경우
-      const status = error.response.status;
-      const serverData = error.response.data;
-
-      if (status >= 500) {
-        // 서버 내부 오류
-        errorResponse = {
-          code: serverData?.code || 'SERVER_ERROR',
-          message: '일시적인 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-          statusCode: status,
-          data: serverData?.data || null,
-          isRetryable: true,
-        };
-      } else if (status === 401) {
-        // 인증 오류
-        errorResponse = {
-          code: serverData?.code || 'UNAUTHORIZED',
-          message: '로그인이 필요합니다.',
-          statusCode: status,
-          data: serverData?.data || null,
-          isRetryable: false,
-        };
-      } else if (status === 403) {
-        // 권한 오류
-        errorResponse = {
-          code: serverData?.code || 'FORBIDDEN',
-          message: '접근 권한이 없습니다.',
-          statusCode: status,
-          data: serverData?.data || null,
-          isRetryable: false,
-        };
-      } else if (status === 429) {
-        // 요청 한도 초과
-        errorResponse = {
-          code: serverData?.code || 'TOO_MANY_REQUESTS',
-          message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.',
-          statusCode: status,
-          data: serverData?.data || null,
-          isRetryable: true,
-        };
-      } else {
-        // 기타 클라이언트 오류
-        errorResponse = {
-          code: serverData?.code || 'CLIENT_ERROR',
-          message: serverData?.message || '요청을 처리할 수 없습니다.',
-          statusCode: status,
-          data: serverData?.data || null,
-          isRetryable: false,
-        };
-      }
-    }
-
-    // 개발 환경에서만 상세 로깅
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.error('[HTTP Error]', {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response?.status,
-        code: errorResponse.code,
-        message: errorResponse.message,
-      });
-    }
-
-    return Promise.reject(errorResponse);
+  // 토큰 갱신 설정 (auth-client는 HTTP-only 쿠키 사용하므로 필요시에만)
+  {
+    refreshUrl: '/api/auth/refresh',
+    refreshBeforeExpiry: 5 * 60 * 1000, // 5분 전 갱신
+  },
+  // 보안 정책 (auth-client 특화)
+  {
+    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'localhost',
+      '127.0.0.1',
+      'auth.krgeobuk.com',
+    ],
+    enableCSRF: true,
+    enableInputValidation: true,
+    enableSecurityLogging: true,
+    rateLimitConfig: {
+      maxAttempts: 50, // 인증 서비스는 조금 더 엄격하게
+      windowMs: 60 * 1000, // 1분
+    },
   }
 );
 
-// 재시도 설정
-const RETRY_CONFIG = {
-  maxRetries: 2,
-  retryDelay: 1000, // 1초
-  retryableErrors: ['TIMEOUT_ERROR', 'NETWORK_ERROR', 'SERVER_ERROR', 'TOO_MANY_REQUESTS'],
-};
-
-// 재시도 로직이 포함된 요청 함수
-const requestWithRetry = async <T>(
-  requestFn: () => Promise<AxiosResponse<ApiResponse<T>>>,
-  retryCount = 0
-): Promise<AxiosResponse<ApiResponse<T>>> => {
-  try {
-    return await requestFn();
-  } catch (error) {
-    // 에러 객체의 타입을 명시적으로 캐스팅
-    const authError = error as AuthError & { config?: { url?: string } };
-    const shouldRetry = 
-      retryCount < RETRY_CONFIG.maxRetries && 
-      authError.isRetryable && 
-      RETRY_CONFIG.retryableErrors.includes(authError.code);
-
-    if (shouldRetry) {
-      // 지수 백오프: 재시도할 때마다 지연 시간 증가
-      const delay = RETRY_CONFIG.retryDelay * Math.pow(2, retryCount);
-      
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(`[HTTP Retry] ${retryCount + 1}/${RETRY_CONFIG.maxRetries} - ${delay}ms 후 재시도`, {
-          url: authError.config?.url,
-          code: authError.code,
-        });
-      }
-
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return requestWithRetry(requestFn, retryCount + 1);
-    }
-
-    throw error;
-  }
-};
-
-// auth-client 전용 API 클라이언트 (GET/POST만 사용, 재시도 포함)
-export const apiClient = {
-  get: <T = unknown>(
-    url: string,
-    config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> =>
-    requestWithRetry(() => axiosInstance.get<ApiResponse<T>>(url, config)),
+// auth-client 전용 API 클라이언트 (auth-server만 사용)
+export const authApi = {
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    httpClient.get<T>('auth', url, config),
 
   post: <T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
-  ): Promise<AxiosResponse<ApiResponse<T>>> =>
-    requestWithRetry(() => axiosInstance.post<ApiResponse<T>>(url, data, config)),
+  ): Promise<ApiResponse<T>> => httpClient.post<T>('auth', url, data, config),
 };
 
-// auth-client 전용 쿠키 유틸리티 함수들
+
+// SSO 관련 유틸리티 함수들 (auth-client 특화 기능)
+export const generateSSOSession = (): string => {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
+export const getSSORedirectUrl = (sessionId: string, redirectUri: string): string => {
+  const params = new URLSearchParams({
+    'redirect-session': sessionId,
+    'redirect-uri': redirectUri,
+  });
+
+  return `${window.location.origin}/login?${params.toString()}`;
+};
+
+// 쿠키 유틸리티 함수들 (기존 SSO 기능 유지)
 export const getCookie = (name: string): string | null => {
   if (typeof document === 'undefined') return null;
 
@@ -233,8 +137,6 @@ export const deleteCookie = (
   });
 };
 
-// auth-client에서는 토큰을 직접 관리하지 않으므로 대부분의 토큰 관리 함수 제거
-// 필요시 세션 정리를 위한 최소한의 함수만 유지
 export const clearAuthCookies = (): void => {
   // CSRF 토큰 등 기본 쿠키만 정리
   deleteCookie('csrf-token', {
@@ -249,27 +151,5 @@ export const clearAuthCookies = (): void => {
   });
 };
 
-// SSO 관련 유틸리티 함수들
-export const generateSSOSession = (): string => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
-
-export const getSSORedirectUrl = (sessionId: string, redirectUri: string): string => {
-  const params = new URLSearchParams({
-    'redirect-session': sessionId,
-    'redirect-uri': redirectUri,
-  });
-
-  return `${window.location.origin}/login?${params.toString()}`;
-};
-
-// HTTP 클라이언트 정리 함수
-export const cleanupHttpClient = (): void => {
-  // auth-client에서는 특별한 정리가 필요하지 않음 (토큰 관리 없음)
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log('Auth client HTTP cleanup completed');
-  }
-};
-
-export default apiClient;
+// 기본 내보내기 (기존 코드 호환성)
+export default authApi;
