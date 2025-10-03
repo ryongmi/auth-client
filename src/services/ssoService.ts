@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/httpClient';
+import { authApi } from '@/lib/httpClient';
 import { LoginRequest } from '@/types';
 
 /**
@@ -16,12 +16,12 @@ export class SSOService {
    */
   async processSSOLogin(loginData: LoginRequest, sessionId: string): Promise<string> {
     try {
-      const response = await apiClient.post<{ redirectUrl: string }>('/auth/sso/login', {
+      const response = await authApi.post<{ redirectUrl: string }>('/auth/sso/login', {
         ...loginData,
         sessionId
       });
 
-      const { redirectUrl } = response.data.data;
+      const { redirectUrl } = response.data;
 
       // auth-client에서는 토큰을 저장하지 않음 (서버에서 HTTP-only 쿠키로 처리)
       return redirectUrl;

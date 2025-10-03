@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/httpClient';
+import { authApi } from '@/lib/httpClient';
 import {
   LoginRequest,
   ExtendedSignupRequest,
@@ -13,9 +13,9 @@ export class AuthService {
   async login(loginData: LoginRequest, redirectSession?: string): Promise<LoginResponse> {
     const url = redirectSession ? `/auth/login?redirect_session=${redirectSession}` : '/auth/login';
 
-    const response = await apiClient.post<LoginResponse>(url, loginData);
+    const response = await authApi.post<LoginResponse>(url, loginData);
 
-    return response.data.data;
+    return response.data;
   }
 
   // 회원가입
@@ -31,13 +31,13 @@ export class AuthService {
       ? `/auth/signup?redirect_session=${redirectSession}`
       : '/auth/signup';
 
-    const response = await apiClient.post<SignupResponse>(url, apiSignupData);
-    return response.data.data;
+    const response = await authApi.post<SignupResponse>(url, apiSignupData);
+    return response.data;
   }
 
   // 로그아웃
   async logout(): Promise<void> {
-    await apiClient.post('/auth/logout');
+    await authApi.post('/auth/logout');
   }
 
   // Google OAuth 로그인 URL 생성
@@ -64,30 +64,30 @@ export class AuthService {
 
   // 비밀번호 찾기
   async forgotPassword(data: ForgotPasswordFormData): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', data);
-    return response.data.data;
+    const response = await authApi.post<{ message: string }>('/auth/forgot-password', data);
+    return response.data;
   }
 
   // 비밀번호 재설정
   async resetPassword(data: ResetPasswordFormData): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/reset-password', data);
-    return response.data.data;
+    const response = await authApi.post<{ message: string }>('/auth/reset-password', data);
+    return response.data;
   }
 
   // 이메일 인증 요청
   async requestEmailVerification(email: string): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/verify-email/request', {
+    const response = await authApi.post<{ message: string }>('/auth/verify-email/request', {
       email,
     });
-    return response.data.data;
+    return response.data;
   }
 
   // 이메일 인증 확인
   async verifyEmail(token: string): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/auth/verify-email/confirm', {
+    const response = await authApi.post<{ message: string }>('/auth/verify-email/confirm', {
       token,
     });
-    return response.data.data;
+    return response.data;
   }
 }
 

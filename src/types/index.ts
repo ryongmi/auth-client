@@ -1,7 +1,7 @@
 // ============================================================================
 // 공통패키지 타입 정의
 // ============================================================================
-export type { ApiResponse } from '@krgeobuk/http-client/types';
+export type { ApiResponse, ApiError } from '@krgeobuk/http-client/types';
 export type { ResponseFormat } from '@krgeobuk/core/interfaces';
 export type { LoggedInUser as User } from '@krgeobuk/shared/user';
 export type { AuthLoginRequest as LoginRequest } from '@krgeobuk/auth/interfaces';
@@ -52,13 +52,13 @@ export interface ResetPasswordFormData {
   confirmPassword: string;
 }
 
-// 에러 타입 (auth-client UI 전용 - 향상된 형태)
-export interface AuthError {
-  code: string;
-  message: string;
-  statusCode?: number;
-  data?: unknown;
-  isRetryable?: boolean; // 재시도 가능 여부
+// auth-client 전용 에러 타입 (공통 ApiError와 호환)
+import type { ApiError as BaseApiError } from '@krgeobuk/http-client/types';
+
+export interface AuthError extends BaseApiError {
+  isRetryable?: boolean; // 재시도 가능 여부 (auth-client 특화)
+  message: string; // message 필드 보장
+  code: string; // code 필드 보장
 }
 
 // SSO 관련 타입 (필수 유지)
