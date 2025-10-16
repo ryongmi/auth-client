@@ -37,14 +37,14 @@ export const loginUser = createAsyncThunk<
   }
 });
 
-// 회원가입
+// 회원가입 (SSO 지원)
 export const signupUser = createAsyncThunk<
   SignupResponse,
-  ExtendedSignupRequest,
+  { signupData: ExtendedSignupRequest; redirectSession?: string },
   { rejectValue: AuthError }
->('auth/signup', async (signupData, { rejectWithValue }) => {
+>('auth/signup', async ({ signupData, redirectSession }, { rejectWithValue }) => {
   try {
-    const response = await authService.signup(signupData);
+    const response = await authService.signup(signupData, redirectSession);
     return response;
   } catch (error) {
     return rejectWithValue(error as AuthError);

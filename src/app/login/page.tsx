@@ -630,7 +630,7 @@ function LoginPageContent(): React.JSX.Element {
             <p className="text-sm text-gray-500">
               아직 계정이 없으신가요?{" "}
               <Link
-                href="/register"
+                href={redirectSession ? `/register?redirect_session=${redirectSession}` : "/register"}
                 className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
               >
                 회원가입
