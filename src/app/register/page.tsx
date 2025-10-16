@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { signupUser } from '@/store/slices/authSlice';
 import { AuthError } from '@/types';
 
-export default function RegisterPage(): React.JSX.Element {
+function RegisterForm(): React.JSX.Element {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -424,5 +424,22 @@ export default function RegisterPage(): React.JSX.Element {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage(): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">로딩 중...</p>
+          </div>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
