@@ -8,7 +8,6 @@ import { LoginRequest } from '@/types';
 export class SSOService {
   private readonly domain = process.env.NEXT_PUBLIC_DOMAIN || 'krgeobuk.com';
 
-
   /**
    * SSO 로그인 처리 (다른 서비스에서 리다이렉트된 경우)
    * @param loginData 로그인 자격 증명
@@ -18,7 +17,7 @@ export class SSOService {
     try {
       const response = await authApi.post<{ redirectUrl: string }>('/auth/sso/login', {
         ...loginData,
-        sessionId
+        sessionId,
       });
 
       const { redirectUrl } = response.data;
@@ -35,14 +34,6 @@ export class SSOService {
       throw error;
     }
   }
-
-
-
-
-
-
-
-
 }
 
 // 싱글톤 인스턴스
