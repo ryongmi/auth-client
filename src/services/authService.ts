@@ -98,7 +98,7 @@ export class AuthService {
       params.set('redirect_session', redirectSession);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://krgeobuk.local:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
     return `${baseUrl}/api/oauth/login-google?${params.toString()}`;
   }
 
@@ -109,7 +109,7 @@ export class AuthService {
       params.set('redirect_session', redirectSession);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://krgeobuk.local:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
     return `${baseUrl}/api/oauth/login-naver?${params.toString()}`;
   }
 

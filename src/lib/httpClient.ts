@@ -6,7 +6,7 @@ import type { AxiosRequestConfig } from 'axios';
 export const httpClient = new HttpClient(
   {
     auth: {
-      baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://krgeobuk.local:8000',
+      baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
       timeout: 10000,
       withCredentials: true, // HTTP-only 쿠키 지원
       headers: {
@@ -16,13 +16,13 @@ export const httpClient = new HttpClient(
     },
     // auth-client는 auth 서버만 사용하지만 타입 호환성을 위해 더미 설정 추가
     authz: {
-      baseURL: 'http://krgeobuk.local:8100', // 사용하지 않음
+      baseURL: 'http://localhost:8100', // 사용하지 않음
     },
     portal: {
-      baseURL: 'http://krgeobuk.local:8200', // 사용하지 않음
+      baseURL: 'http://localhost:8200', // 사용하지 않음
     },
     mypick: {
-      baseURL: 'http://krgeobuk.local:4000', // 사용하지 않음
+      baseURL: 'http://localhost:4000', // 사용하지 않음
     },
   },
   // 토큰 갱신 설정 (auth-client는 HTTP-only 쿠키 사용하므로 필요시에만)
@@ -32,12 +32,7 @@ export const httpClient = new HttpClient(
   },
   // 보안 정책 (auth-client 특화)
   {
-    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'krgeobuk.local',
-      'localhost',
-      '127.0.0.1',
-      'auth.krgeobuk.com',
-    ],
+    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['localhost', '127.0.0.1'],
     enableCSRF: true,
     enableInputValidation: true,
     enableSecurityLogging: true,
