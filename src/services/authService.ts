@@ -99,7 +99,7 @@ export class AuthService {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
-    return `${baseUrl}/api/oauth/login-google?${params.toString()}`;
+    return `${baseUrl}/oauth/login-google?${params.toString()}`;
   }
 
   // Naver OAuth 로그인 URL 생성
@@ -110,7 +110,7 @@ export class AuthService {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
-    return `${baseUrl}/api/oauth/login-naver?${params.toString()}`;
+    return `${baseUrl}/oauth/login-naver?${params.toString()}`;
   }
 
   // 비밀번호 찾기
