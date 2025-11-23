@@ -156,6 +156,18 @@ export class AuthService {
       throw this.convertToAuthError(error);
     }
   }
+
+  // 클라이언트 초기화 (RefreshToken으로 AccessToken 및 사용자 정보 반환)
+  async initialize(): Promise<{ accessToken: string; user: any }> {
+    try {
+      const response = await authApi.post<{ accessToken: string; user: any }>(
+        '/auth/initialize'
+      );
+      return response.data;
+    } catch (error) {
+      throw this.convertToAuthError(error);
+    }
+  }
 }
 
 // 싱글톤 인스턴스

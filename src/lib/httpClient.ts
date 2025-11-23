@@ -9,21 +9,7 @@ export const httpClient = new HttpClient(
       baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
       timeout: 10000,
       withCredentials: true, // HTTP-only 쿠키 지원
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
     },
-    // auth-client는 auth 서버만 사용하지만 타입 호환성을 위해 더미 설정 추가
-    // authz: {
-    //   baseURL: 'http://localhost:8100', // 사용하지 않음
-    // },
-    // portal: {
-    //   baseURL: 'http://localhost:8200', // 사용하지 않음
-    // },
-    // mypick: {
-    //   baseURL: 'http://localhost:4000', // 사용하지 않음
-    // },
   },
   // 토큰 갱신 설정 (auth-client는 HTTP-only 쿠키 사용하므로 필요시에만)
   {
@@ -47,12 +33,23 @@ export const httpClient = new HttpClient(
 export const authApi = {
   get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
     httpClient.get<T>('auth', url, config),
-
   post: <T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> => httpClient.post<T>('auth', url, data, config),
+  put: <T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => httpClient.put<T>('auth', url, data, config),
+  patch: <T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => httpClient.patch<T>('auth', url, data, config),
+  delete: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    httpClient.delete<T>('auth', url, config),
 };
 
 // 기본 내보내기 (기존 코드 호환성)
