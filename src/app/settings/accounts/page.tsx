@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
+import { getOAuthErrorMessage, isOAuthErrorCode, type OAuthProvider } from '@/utils/oauthErrorMapper';
 
 interface UserInfo {
   id: string;
@@ -21,11 +22,30 @@ export default function OAuthAccountsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-  // 연동 완료 메시지 표시
+  // 연동 완료 메시지 및 OAuth 에러 처리
   useEffect(() => {
     const linked = searchParams.get('linked');
     const provider = searchParams.get('provider');
+    const oauthError = searchParams.get('error');
 
+    // OAuth 에러 처리
+    if (oauthError && isOAuthErrorCode(oauthError)) {
+      const providerType = provider as OAuthProvider | undefined;
+      const errorMessage = getOAuthErrorMessage(oauthError, providerType);
+      setMessage({
+        type: 'error',
+        text: errorMessage,
+      });
+
+      // URL 파라미터 제거
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('error');
+      newUrl.searchParams.delete('provider');
+      window.history.replaceState({}, '', newUrl.toString());
+      return;
+    }
+
+    // 연동 성공 메시지
     if (linked === 'true' && provider && accessToken) {
       setMessage({
         type: 'success',

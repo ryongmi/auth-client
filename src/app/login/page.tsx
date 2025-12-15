@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser, clearError } from "@/store/slices/authSlice";
 import { authService } from "@/services/authService";
 import { AuthError } from "@/types";
+import { getOAuthErrorMessage, isOAuthErrorCode, getOAuthErrorType, type OAuthProvider } from "@/utils/oauthErrorMapper";
 
 function LoginPageContent(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ function LoginPageContent(): React.JSX.Element {
     (state) => state.auth
   );
 
-  // SSO 리다이렉트 세션 확인
+  // SSO 리다이렉트 세션 확인 및 OAuth 에러 처리
   useEffect(() => {
     // URL 파라미터에서 SSO 세션 정보 확인
     const session = searchParams.get("redirect_session");
@@ -45,6 +46,24 @@ function LoginPageContent(): React.JSX.Element {
 
       setRedirectSession(session);
       setIsSSO(true);
+    }
+
+    // OAuth 에러 처리
+    const oauthError = searchParams.get("error");
+    const provider = searchParams.get("provider") as string | null;
+
+    if (oauthError && isOAuthErrorCode(oauthError)) {
+      const providerType = provider as OAuthAccountProviderType | undefined;
+      const errorMessage = getOAuthErrorMessage(oauthError, providerType);
+      const errorType = getOAuthErrorType(oauthError);
+
+      setErrors({ submit: errorMessage });
+
+      // URL 정리 (에러 메시지는 표시하되, URL에서는 제거)
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("error");
+      newUrl.searchParams.delete("provider");
+      window.history.replaceState({}, "", newUrl.toString());
     }
 
     // 로그인 시도 횟수 확인
