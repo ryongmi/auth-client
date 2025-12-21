@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
-import { getOAuthErrorMessage, isOAuthErrorCode, type OAuthProvider } from '@/utils/oauthErrorMapper';
+import {
+  getOAuthErrorMessage,
+  isOAuthErrorCode,
+  parseOAuthEmailDuplicateError,
+  type OAuthProvider,
+  type OAuthEmailDuplicateDetails,
+} from '@/utils/oauthErrorMapper';
+import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
 
 interface UserInfo {
   id: string;
@@ -21,6 +28,7 @@ export default function OAuthAccountsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] = useState<OAuthEmailDuplicateDetails | null>(null);
 
   // 연동 완료 메시지 및 OAuth 에러 처리
   useEffect(() => {
@@ -30,17 +38,36 @@ export default function OAuthAccountsPage() {
 
     // OAuth 에러 처리
     if (oauthError && isOAuthErrorCode(oauthError)) {
-      const providerType = provider as OAuthProvider | undefined;
-      const errorMessage = getOAuthErrorMessage(oauthError, providerType);
-      setMessage({
-        type: 'error',
-        text: errorMessage,
-      });
+      // OAUTH_205 (이메일 중복) 에러는 상세 UI 표시
+      if (oauthError === 'OAUTH_205') {
+        const details = parseOAuthEmailDuplicateError(searchParams);
+        if (details) {
+          setOauthEmailDuplicateDetails(details);
+        } else {
+          // 파싱 실패 시 기본 메시지 표시
+          const providerType = provider as OAuthProvider | undefined;
+          setMessage({
+            type: 'error',
+            text: getOAuthErrorMessage(oauthError, providerType),
+          });
+        }
+      } else {
+        // 다른 OAuth 에러는 기본 메시지만 표시
+        const providerType = provider as OAuthProvider | undefined;
+        const errorMessage = getOAuthErrorMessage(oauthError, providerType);
+        setMessage({
+          type: 'error',
+          text: errorMessage,
+        });
+      }
 
       // URL 파라미터 제거
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('error');
       newUrl.searchParams.delete('provider');
+      newUrl.searchParams.delete('email');
+      newUrl.searchParams.delete('methods');
+      newUrl.searchParams.delete('suggestion');
       window.history.replaceState({}, '', newUrl.toString());
       return;
     }
@@ -182,7 +209,25 @@ export default function OAuthAccountsPage() {
           연동된 계정을 관리하고 새로운 로그인 방식을 추가할 수 있습니다.
         </p>
 
-        {message && (
+        {/* OAuth 이메일 중복 에러 상세 UI */}
+        {oauthEmailDuplicateDetails && (
+          <div className="mb-6">
+            <OAuthEmailDuplicateError
+              details={oauthEmailDuplicateDetails}
+              onLoginClick={() => {
+                setOauthEmailDuplicateDetails(null);
+                router.push('/login');
+              }}
+              onRetryClick={() => {
+                setOauthEmailDuplicateDetails(null);
+                // 계정 설정 페이지에 머무름
+              }}
+            />
+          </div>
+        )}
+
+        {/* 일반 메시지 표시 */}
+        {!oauthEmailDuplicateDetails && message && (
           <div
             className={`p-4 mb-6 rounded-lg ${
               message.type === 'success'

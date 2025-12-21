@@ -14,14 +14,29 @@
 export type OAuthProvider = 'google' | 'naver' | 'homepage';
 
 /**
+ * 로그인 방법 타입
+ */
+export type LoginMethod = 'email' | 'google' | 'naver';
+
+/**
  * 에러 타입 분류 (UI 스타일링용)
  */
 export type OAuthErrorType = 'error' | 'warning' | 'info';
 
 /**
+ * OAuth 에러 상세 정보 (OAUTH_205 전용)
+ */
+export interface OAuthEmailDuplicateDetails {
+  email: string;
+  attemptedProvider: OAuthProvider;
+  availableLoginMethods: LoginMethod[];
+  suggestion: string;
+}
+
+/**
  * 제공자 이름을 한글로 반환
  */
-function getProviderName(provider?: OAuthProvider): string | null {
+export function getProviderName(provider?: OAuthProvider): string | null {
   switch (provider) {
     case 'google':
       return 'Google';
@@ -32,6 +47,46 @@ function getProviderName(provider?: OAuthProvider): string | null {
     default:
       return null;
   }
+}
+
+/**
+ * 로그인 방법 이름을 한글로 반환
+ */
+export function getLoginMethodName(method: LoginMethod): string {
+  switch (method) {
+    case 'email':
+      return '이메일/비밀번호';
+    case 'google':
+      return 'Google';
+    case 'naver':
+      return 'Naver';
+    default:
+      return method;
+  }
+}
+
+/**
+ * URL 파라미터에서 OAUTH_205 에러 상세 정보 파싱
+ */
+export function parseOAuthEmailDuplicateError(searchParams: URLSearchParams): OAuthEmailDuplicateDetails | null {
+  const error = searchParams.get('error');
+  if (error !== 'OAUTH_205') return null;
+
+  const email = searchParams.get('email');
+  const attemptedProvider = searchParams.get('provider') as OAuthProvider;
+  const methodsParam = searchParams.get('methods');
+  const suggestion = searchParams.get('suggestion');
+
+  if (!email || !attemptedProvider || !methodsParam) return null;
+
+  const availableLoginMethods = methodsParam.split(',') as LoginMethod[];
+
+  return {
+    email,
+    attemptedProvider,
+    availableLoginMethods,
+    suggestion: suggestion || '다음 방법으로 로그인 후 설정에서 계정을 연동할 수 있습니다.',
+  };
 }
 
 /**

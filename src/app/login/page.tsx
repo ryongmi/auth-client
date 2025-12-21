@@ -2,12 +2,20 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser, clearError } from "@/store/slices/authSlice";
 import { authService } from "@/services/authService";
 import { AuthError } from "@/types";
-import { getOAuthErrorMessage, isOAuthErrorCode, getOAuthErrorType, type OAuthProvider } from "@/utils/oauthErrorMapper";
+import {
+  getOAuthErrorMessage,
+  isOAuthErrorCode,
+  getOAuthErrorType,
+  parseOAuthEmailDuplicateError,
+  type OAuthProvider,
+  type OAuthEmailDuplicateDetails
+} from "@/utils/oauthErrorMapper";
+import { OAuthEmailDuplicateError } from "@/components/OAuthEmailDuplicateError";
 
 function LoginPageContent(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -21,8 +29,9 @@ function LoginPageContent(): React.JSX.Element {
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<AuthError | null>(null);
+  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] = useState<OAuthEmailDuplicateDetails | null>(null);
 
-  // const router = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const formRef = useRef<HTMLFormElement>(null);
@@ -50,19 +59,32 @@ function LoginPageContent(): React.JSX.Element {
 
     // OAuth 에러 처리
     const oauthError = searchParams.get("error");
-    const provider = searchParams.get("provider") as string | null;
 
     if (oauthError && isOAuthErrorCode(oauthError)) {
-      const providerType = provider as OAuthProvider | undefined;
-      const errorMessage = getOAuthErrorMessage(oauthError, providerType);
-      const errorType = getOAuthErrorType(oauthError);
-
-      setErrors({ submit: errorMessage });
+      // OAUTH_205 (이메일 중복) 에러는 상세 UI 표시
+      if (oauthError === 'OAUTH_205') {
+        const details = parseOAuthEmailDuplicateError(searchParams);
+        if (details) {
+          setOauthEmailDuplicateDetails(details);
+        } else {
+          // 파싱 실패 시 기본 메시지 표시
+          const provider = searchParams.get("provider") as OAuthProvider | undefined;
+          setErrors({ submit: getOAuthErrorMessage(oauthError, provider) });
+        }
+      } else {
+        // 다른 OAuth 에러는 기본 메시지만 표시
+        const provider = searchParams.get("provider") as OAuthProvider | undefined;
+        const errorMessage = getOAuthErrorMessage(oauthError, provider);
+        setErrors({ submit: errorMessage });
+      }
 
       // URL 정리 (에러 메시지는 표시하되, URL에서는 제거)
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("error");
       newUrl.searchParams.delete("provider");
+      newUrl.searchParams.delete("email");
+      newUrl.searchParams.delete("methods");
+      newUrl.searchParams.delete("suggestion");
       window.history.replaceState({}, "", newUrl.toString());
     }
 
@@ -418,8 +440,23 @@ function LoginPageContent(): React.JSX.Element {
               </div>
             </div>
 
-            {/* 향상된 에러 표시 */}
-            {errors.submit && (
+            {/* OAuth 이메일 중복 에러 상세 UI */}
+            {oauthEmailDuplicateDetails && (
+              <OAuthEmailDuplicateError
+                details={oauthEmailDuplicateDetails}
+                onLoginClick={() => {
+                  setOauthEmailDuplicateDetails(null);
+                  // 로그인 폼으로 스크롤 (이미 로그인 페이지이므로)
+                }}
+                onRetryClick={() => {
+                  setOauthEmailDuplicateDetails(null);
+                  router.push('/oauth');
+                }}
+              />
+            )}
+
+            {/* 향상된 에러 표시 (일반 에러용) */}
+            {!oauthEmailDuplicateDetails && errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-start">
                   <svg
