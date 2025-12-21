@@ -53,7 +53,7 @@ function LoginPageContent(): React.JSX.Element {
     const provider = searchParams.get("provider") as string | null;
 
     if (oauthError && isOAuthErrorCode(oauthError)) {
-      const providerType = provider as OAuthAccountProviderType | undefined;
+      const providerType = provider as OAuthProvider | undefined;
       const errorMessage = getOAuthErrorMessage(oauthError, providerType);
       const errorType = getOAuthErrorType(oauthError);
 

@@ -126,6 +126,11 @@ export function getOAuthErrorMessage(errorCode: string, provider?: OAuthProvider
         ? `해당 이메일은 ${providerName} 계정으로 가입되지 않았습니다. 일반 로그인을 사용하거나, 계정 설정에서 ${providerName} 계정을 연동해주세요.`
         : '해당 이메일로 가입된 계정이 있지만 OAuth 계정이 연동되지 않았습니다.';
 
+    case 'OAUTH_205':
+      return providerName
+        ? `${providerName} 로그인을 시도한 이메일은 이미 다른 방법으로 가입되어 있습니다. 기존 로그인 방법을 사용해주세요.`
+        : '이미 다른 방법으로 가입된 이메일입니다. 기존 로그인 방법을 사용해주세요.';
+
     // 알 수 없는 에러 코드
     default:
       return '인증 중 오류가 발생했습니다. 다시 시도해주세요.';
