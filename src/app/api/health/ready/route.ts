@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(): Promise<
+  | NextResponse<{
+      status: string;
+      reason: string;
+      timestamp: string;
+      service: string;
+    }>
+  | NextResponse<{
+      status: string;
+      timestamp: string;
+      service: string;
+      config: {
+        authServerUrl: string | undefined;
+      };
+    }>
+> {
   // 환경변수 체크 (필수 설정 확인)
-  const requiredEnvVars = [
-    'NEXT_PUBLIC_AUTH_SERVER_URL',
-  ];
+  const requiredEnvVars = ['NEXT_PUBLIC_AUTH_SERVER_URL'];
 
-  const missingVars = requiredEnvVars.filter(
-    (varName) => !process.env[varName]
-  );
+  const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
   if (missingVars.length > 0) {
     return NextResponse.json(
