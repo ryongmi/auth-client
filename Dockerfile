@@ -7,8 +7,12 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY .npmrc.docker .npmrc
+COPY package.json ./
+# COPY package*.json ./
+# RUN npm ci --omit=dev && npm cache clean --force
+# npm ci 대신 npm install 사용 (package-lock.json 없이도 동작) 
+  RUN npm install && npm cache clean --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
