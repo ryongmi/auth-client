@@ -13,12 +13,7 @@ import {
 } from '@/utils/oauthErrorMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
 
-interface UserInfo {
-  id: string;
-  email: string;
-  name: string;
-  nickname: string;
-}
+import type { UserProfile } from '@krgeobuk/user/interfaces';
 
 export default function OAuthAccountsPage(): React.JSX.Element {
   const router = useRouter();
@@ -27,8 +22,9 @@ export default function OAuthAccountsPage(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [_userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] = useState<OAuthEmailDuplicateDetails | null>(null);
+  const [_userInfo, setUserInfo] = useState<UserProfile | null>(null);
+  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] =
+    useState<OAuthEmailDuplicateDetails | null>(null);
 
   // 연동 완료 메시지 및 OAuth 에러 처리
   useEffect(() => {
