@@ -1,8 +1,6 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
@@ -17,7 +15,7 @@ import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError'
 
 import type { UserProfile } from '@krgeobuk/user/interfaces';
 
-export default function OAuthAccountsPage(): React.JSX.Element {
+function OAuthAccountsContent(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
@@ -339,5 +337,19 @@ export default function OAuthAccountsPage(): React.JSX.Element {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OAuthAccountsPage(): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <OAuthAccountsContent />
+    </Suspense>
   );
 }
