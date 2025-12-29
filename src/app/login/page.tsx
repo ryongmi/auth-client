@@ -10,7 +10,6 @@ import { AuthError } from "@/types";
 import {
   getOAuthErrorMessage,
   isOAuthErrorCode,
-  getOAuthErrorType,
   parseOAuthEmailDuplicateError,
   type OAuthProvider,
   type OAuthEmailDuplicateDetails

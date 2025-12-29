@@ -7,7 +7,6 @@ import React from 'react';
 import {
   type OAuthEmailDuplicateDetails,
   getLoginMethodName,
-  getProviderName,
 } from '@/utils/oauthErrorMapper';
 
 interface OAuthEmailDuplicateErrorProps {
@@ -21,8 +20,7 @@ export function OAuthEmailDuplicateError({
   onLoginClick,
   onRetryClick,
 }: OAuthEmailDuplicateErrorProps): React.JSX.Element {
-  const { email, attemptedProvider, availableLoginMethods, suggestion } = details;
-  const providerName = getProviderName(attemptedProvider);
+  const { email, availableLoginMethods, suggestion } = details;
 
   return (
     <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">

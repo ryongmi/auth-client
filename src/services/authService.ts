@@ -10,6 +10,8 @@ import {
 } from '@/types';
 import { AxiosError } from 'axios';
 
+import type { UserProfile } from '@krgeobuk/user/interfaces';
+
 export class AuthService {
   // Axios 에러를 AuthError로 변환하는 헬퍼 메서드
   private convertToAuthError(error: unknown): AuthError {
@@ -158,9 +160,9 @@ export class AuthService {
   }
 
   // 클라이언트 초기화 (RefreshToken으로 AccessToken 및 사용자 정보 반환)
-  async initialize(): Promise<{ accessToken: string; user: any }> {
+  async initialize(): Promise<{ accessToken: string; user: UserProfile }> {
     try {
-      const response = await authApi.post<{ accessToken: string; user: any }>(
+      const response = await authApi.post<{ accessToken: string; user: UserProfile }>(
         '/auth/initialize'
       );
       return response.data;

@@ -13,6 +13,7 @@
   "dependencies": {
     "@krgeobuk/auth": "^1.0.0",
     "@krgeobuk/core": "^1.0.0",
+    "@krgeobuk/user": "^1.0.0",
     "@krgeobuk/http-client": "^1.0.0",
     "@krgeobuk/shared": "^1.0.0",
     "@reduxjs/toolkit": "^2.8.2",

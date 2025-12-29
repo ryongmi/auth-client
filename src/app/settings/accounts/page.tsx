@@ -20,14 +20,14 @@ interface UserInfo {
   nickname: string;
 }
 
-export default function OAuthAccountsPage() {
+export default function OAuthAccountsPage(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [_userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] = useState<OAuthEmailDuplicateDetails | null>(null);
 
   // 연동 완료 메시지 및 OAuth 에러 처리
@@ -92,7 +92,7 @@ export default function OAuthAccountsPage() {
     initializeAuth();
   }, []);
 
-  const initializeAuth = async () => {
+  const initializeAuth = async (): Promise<void> => {
     try {
       // 1. authService를 통해 initialize API 호출
       const initData = await authService.initialize();
@@ -101,37 +101,39 @@ export default function OAuthAccountsPage() {
 
       // 2. oauthService를 통해 연동된 계정 목록 조회
       await fetchLinkedAccounts(initData.accessToken);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
       setMessage({
         type: 'error',
-        text: error.message || '오류가 발생했습니다.',
+        text: errorMessage,
       });
       setLoading(false);
     }
   };
 
-  const fetchLinkedAccounts = async (token: string) => {
+  const fetchLinkedAccounts = async (token: string): Promise<void> => {
     try {
       // oauthService를 통해 연동된 계정 목록 조회
       const data = await oauthService.getLinkedAccounts(token);
       setLinkedAccounts(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
       setMessage({
         type: 'error',
-        text: error.message || '오류가 발생했습니다.',
+        text: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLinkAccount = (provider: 'google' | 'naver') => {
+  const handleLinkAccount = (provider: 'google' | 'naver'): void => {
     // oauthService를 통해 연동 URL 생성
     const linkUrl = oauthService.getLinkAccountUrl(provider);
     window.location.href = linkUrl;
   };
 
-  const handleUnlinkAccount = async (provider: string) => {
+  const handleUnlinkAccount = async (provider: string): Promise<void> => {
     if (!accessToken) {
       setMessage({
         type: 'error',
@@ -155,15 +157,16 @@ export default function OAuthAccountsPage() {
 
       // 계정 목록 새로고침
       fetchLinkedAccounts(accessToken);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
       setMessage({
         type: 'error',
-        text: error.message || '오류가 발생했습니다.',
+        text: errorMessage,
       });
     }
   };
 
-  const getProviderLabel = (provider: string) => {
+  const getProviderLabel = (provider: string): string => {
     switch (provider) {
       case 'homePage':
         return '홈페이지';
@@ -176,7 +179,7 @@ export default function OAuthAccountsPage() {
     }
   };
 
-  const getProviderIcon = (provider: string) => {
+  const getProviderIcon = (provider: string): string => {
     switch (provider) {
       case 'homePage':
         return '🏠';
@@ -189,7 +192,7 @@ export default function OAuthAccountsPage() {
     }
   };
 
-  const isLinked = (provider: string) => {
+  const isLinked = (provider: string): boolean => {
     return linkedAccounts.some((account) => account.provider === provider);
   };
 
