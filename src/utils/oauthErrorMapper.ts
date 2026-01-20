@@ -34,6 +34,14 @@ export interface OAuthEmailDuplicateDetails {
 }
 
 /**
+ * 계정 병합 요청 정보 (OAUTH_202 전용)
+ */
+export interface OAuthAccountMergeDetails {
+  provider: OAuthProvider;
+  mergeRequestCreated: boolean;
+}
+
+/**
  * 제공자 이름을 한글로 반환
  */
 export function getProviderName(provider?: OAuthProvider): string | null {
@@ -86,6 +94,24 @@ export function parseOAuthEmailDuplicateError(searchParams: URLSearchParams): OA
     attemptedProvider,
     availableLoginMethods,
     suggestion: suggestion || '다음 방법으로 로그인 후 설정에서 계정을 연동할 수 있습니다.',
+  };
+}
+
+/**
+ * URL 파라미터에서 OAUTH_202 에러 상세 정보 파싱
+ * (다른 사용자가 사용 중인 OAuth 계정 - 계정 병합 요청 자동 생성됨)
+ */
+export function parseOAuthAccountMergeError(searchParams: URLSearchParams): OAuthAccountMergeDetails | null {
+  const error = searchParams.get('error');
+  if (error !== 'OAUTH_202') return null;
+
+  const provider = searchParams.get('provider') as OAuthProvider;
+
+  if (!provider) return null;
+
+  return {
+    provider,
+    mergeRequestCreated: true, // OAUTH_202는 서버에서 자동으로 병합 요청을 생성함
   };
 }
 

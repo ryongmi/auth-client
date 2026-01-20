@@ -451,6 +451,14 @@ function LoginPageContent(): React.JSX.Element {
                   setOauthEmailDuplicateDetails(null);
                   router.push('/oauth');
                 }}
+                onMergeClick={() => {
+                  // 계정 병합 요청 페이지로 이동
+                  const params = new URLSearchParams({
+                    provider: oauthEmailDuplicateDetails.attemptedProvider,
+                    email: oauthEmailDuplicateDetails.email,
+                  });
+                  router.push(`/account-merge/request?${params.toString()}`);
+                }}
               />
             )}
 

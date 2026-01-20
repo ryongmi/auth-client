@@ -25,6 +25,7 @@ function OAuthAccountsContent(): React.JSX.Element {
   const [_userInfo, setUserInfo] = useState<UserProfile | null>(null);
   const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] =
     useState<OAuthEmailDuplicateDetails | null>(null);
+  const [mergeRequestSent, setMergeRequestSent] = useState<{ provider: string } | null>(null);
 
   // 연동 완료 메시지 및 OAuth 에러 처리
   useEffect(() => {
@@ -47,6 +48,10 @@ function OAuthAccountsContent(): React.JSX.Element {
             text: getOAuthErrorMessage(oauthError, providerType),
           });
         }
+      } else if (oauthError === 'OAUTH_202') {
+        // OAUTH_202 (다른 사용자가 사용 중) - 계정 병합 요청 발송됨
+        const providerType = provider as OAuthProvider | undefined;
+        setMergeRequestSent({ provider: providerType || 'unknown' });
       } else {
         // 다른 OAuth 에러는 기본 메시지만 표시
         const providerType = provider as OAuthProvider | undefined;
@@ -222,6 +227,44 @@ function OAuthAccountsContent(): React.JSX.Element {
                 // 계정 설정 페이지에 머무름
               }}
             />
+          </div>
+        )}
+
+        {/* 계정 병합 요청 발송 알림 (OAUTH_202) */}
+        {mergeRequestSent && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <svg
+                className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-800 mb-1">
+                  계정 병합 요청이 발송되었습니다
+                </h3>
+                <p className="text-sm text-blue-700 mb-2">
+                  해당 {mergeRequestSent.provider === 'google' ? 'Google' : mergeRequestSent.provider === 'naver' ? 'Naver' : mergeRequestSent.provider} 계정은 다른 사용자에게 연결되어 있습니다.
+                </p>
+                <p className="text-sm text-blue-600">
+                  계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이 병합됩니다.
+                </p>
+                <button
+                  onClick={() => setMergeRequestSent(null)}
+                  className="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

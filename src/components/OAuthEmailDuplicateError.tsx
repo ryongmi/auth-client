@@ -13,12 +13,14 @@ interface OAuthEmailDuplicateErrorProps {
   details: OAuthEmailDuplicateDetails;
   onLoginClick?: () => void;
   onRetryClick?: () => void;
+  onMergeClick?: () => void;
 }
 
 export function OAuthEmailDuplicateError({
   details,
   onLoginClick,
   onRetryClick,
+  onMergeClick,
 }: OAuthEmailDuplicateErrorProps): React.JSX.Element {
   const { email, availableLoginMethods, suggestion } = details;
 
@@ -89,25 +91,49 @@ export function OAuthEmailDuplicateError({
       </div>
 
       {/* 액션 버튼 */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        {onLoginClick && (
+      <div className="flex flex-col gap-2">
+        {onMergeClick && (
           <button
             type="button"
-            onClick={onLoginClick}
-            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+            onClick={onMergeClick}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center"
           >
-            로그인하기
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+              />
+            </svg>
+            계정 병합하기
           </button>
         )}
-        {onRetryClick && (
-          <button
-            type="button"
-            onClick={onRetryClick}
-            className="flex-1 bg-white text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors font-medium text-sm"
-          >
-            다른 이메일로 가입
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {onLoginClick && (
+            <button
+              type="button"
+              onClick={onLoginClick}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+            >
+              로그인하기
+            </button>
+          )}
+          {onRetryClick && (
+            <button
+              type="button"
+              onClick={onRetryClick}
+              className="flex-1 bg-white text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors font-medium text-sm"
+            >
+              다른 이메일로 가입
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

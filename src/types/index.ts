@@ -66,3 +66,34 @@ export interface SSOLoginRequest extends AuthLoginRequest {
   sessionId?: string;
   redirectUri?: string;
 }
+
+// ============================================================================
+// 계정 병합 관련 타입 정의
+// ============================================================================
+
+export type AccountMergeStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'FAILED';
+
+export interface InitiateAccountMergeDto {
+  provider: string;
+  providerId: string;
+  email: string;
+}
+
+export interface AccountMergeResponse {
+  id: number;
+  createdAt: string;
+  expiresAt: string;
+  provider: string;
+  status: AccountMergeStatus;
+  sourceEmail: string;
+  targetEmail: string;
+}
+
+export interface AccountMergeInitiateResponse {
+  requestId: number;
+  message: string;
+}
+
+export interface AccountMergeActionResponse {
+  message: string;
+}
