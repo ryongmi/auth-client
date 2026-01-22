@@ -14,6 +14,7 @@ import {
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
 
 import type { UserProfile } from '@krgeobuk/user/interfaces';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 
 function OAuthAccountsContent(): React.JSX.Element {
   const router = useRouter();
@@ -77,7 +78,7 @@ function OAuthAccountsContent(): React.JSX.Element {
     if (linked === 'true' && provider && accessToken) {
       setMessage({
         type: 'success',
-        text: `${provider === 'google' ? 'Google' : 'Naver'} 계정이 성공적으로 연동되었습니다.`,
+        text: `${provider === OAuthAccountProviderType.GOOGLE ? 'Google' : 'Naver'} 계정이 성공적으로 연동되었습니다.`,
       });
 
       // URL 파라미터 제거
@@ -128,7 +129,7 @@ function OAuthAccountsContent(): React.JSX.Element {
     }
   };
 
-  const handleLinkAccount = (provider: 'google' | 'naver'): void => {
+  const handleLinkAccount = (provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER): void => {
     // oauthService를 통해 연동 URL 생성
     const linkUrl = oauthService.getLinkAccountUrl(provider);
     window.location.href = linkUrl;
@@ -169,11 +170,11 @@ function OAuthAccountsContent(): React.JSX.Element {
 
   const getProviderLabel = (provider: string): string => {
     switch (provider) {
-      case 'homePage':
+      case OAuthAccountProviderType.HOMEPAGE:
         return '홈페이지';
-      case 'google':
+      case OAuthAccountProviderType.GOOGLE:
         return 'Google';
-      case 'naver':
+      case OAuthAccountProviderType.NAVER:
         return 'Naver';
       default:
         return provider;
@@ -182,11 +183,11 @@ function OAuthAccountsContent(): React.JSX.Element {
 
   const getProviderIcon = (provider: string): string => {
     switch (provider) {
-      case 'homePage':
+      case OAuthAccountProviderType.HOMEPAGE:
         return '🏠';
-      case 'google':
+      case OAuthAccountProviderType.GOOGLE:
         return '📧';
-      case 'naver':
+      case OAuthAccountProviderType.NAVER:
         return '💚';
       default:
         return '🔐';
@@ -252,7 +253,7 @@ function OAuthAccountsContent(): React.JSX.Element {
                   계정 병합 요청이 발송되었습니다
                 </h3>
                 <p className="text-sm text-blue-700 mb-2">
-                  해당 {mergeRequestSent.provider === 'google' ? 'Google' : mergeRequestSent.provider === 'naver' ? 'Naver' : mergeRequestSent.provider} 계정은 다른 사용자에게 연결되어 있습니다.
+                  해당 {mergeRequestSent.provider === OAuthAccountProviderType.GOOGLE ? 'Google' : mergeRequestSent.provider === OAuthAccountProviderType.NAVER ? 'Naver' : mergeRequestSent.provider} 계정은 다른 사용자에게 연결되어 있습니다.
                 </p>
                 <p className="text-sm text-blue-600">
                   계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이 병합됩니다.
@@ -298,7 +299,7 @@ function OAuthAccountsContent(): React.JSX.Element {
                     </div>
                   </div>
                 </div>
-                {account.provider !== 'homePage' && linkedAccounts.length > 1 && (
+                {account.provider !== OAuthAccountProviderType.HOMEPAGE && linkedAccounts.length > 1 && (
                   <button
                     onClick={() => handleUnlinkAccount(account.provider)}
                     className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
@@ -306,12 +307,12 @@ function OAuthAccountsContent(): React.JSX.Element {
                     연동 해제
                   </button>
                 )}
-                {account.provider === 'homePage' && (
+                {account.provider === OAuthAccountProviderType.HOMEPAGE && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                     기본 계정
                   </span>
                 )}
-                {linkedAccounts.length === 1 && account.provider !== 'homePage' && (
+                {linkedAccounts.length === 1 && account.provider !== OAuthAccountProviderType.HOMEPAGE && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                     해제 불가
                   </span>
@@ -324,7 +325,7 @@ function OAuthAccountsContent(): React.JSX.Element {
         <section>
           <h2 className="text-xl font-semibold mb-4">연동 가능한 계정</h2>
           <div className="space-y-3">
-            {!isLinked('google') && (
+            {!isLinked(OAuthAccountProviderType.GOOGLE) && (
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">📧</span>
@@ -336,7 +337,7 @@ function OAuthAccountsContent(): React.JSX.Element {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleLinkAccount('google')}
+                  onClick={() => handleLinkAccount(OAuthAccountProviderType.GOOGLE)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                   연동하기
@@ -344,7 +345,7 @@ function OAuthAccountsContent(): React.JSX.Element {
               </div>
             )}
 
-            {!isLinked('naver') && (
+            {!isLinked(OAuthAccountProviderType.NAVER) && (
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">💚</span>
@@ -354,7 +355,7 @@ function OAuthAccountsContent(): React.JSX.Element {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleLinkAccount('naver')}
+                  onClick={() => handleLinkAccount(OAuthAccountProviderType.NAVER)}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 >
                   연동하기
@@ -362,7 +363,7 @@ function OAuthAccountsContent(): React.JSX.Element {
               </div>
             )}
 
-            {isLinked('google') && isLinked('naver') && (
+            {isLinked(OAuthAccountProviderType.GOOGLE) && isLinked(OAuthAccountProviderType.NAVER) && (
               <div className="text-center text-gray-500 py-8">
                 모든 OAuth 계정이 연동되었습니다.
               </div>

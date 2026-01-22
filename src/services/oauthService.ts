@@ -1,6 +1,7 @@
 import { authApi } from '@/lib/httpClient';
 import { AuthError } from '@/types';
 import { AxiosError } from 'axios';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 
 export interface LinkedAccount {
   id: string;
@@ -70,7 +71,7 @@ export class OAuthService {
   /**
    * OAuth 계정 연동 URL 생성
    */
-  getLinkAccountUrl(provider: 'google' | 'naver'): string {
+  getLinkAccountUrl(provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER): string {
     const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000';
     return `${baseUrl}/oauth/link-${provider}`;
   }
