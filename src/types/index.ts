@@ -23,6 +23,7 @@ export { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 // 공통패키지 타입 import
 import type { AuthSignupRequest } from '@krgeobuk/auth/interfaces';
 import type { AuthLoginRequest } from '@krgeobuk/auth/interfaces';
+import type { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 
 // auth-client에서만 사용하는 확장된 회원가입 타입
 export interface ExtendedSignupRequest extends AuthSignupRequest {
@@ -40,7 +41,7 @@ export interface OAuthCallbackParams {
 export interface OAuthProviderConfig {
   id: string;
   name: string;
-  provider: typeof import('@krgeobuk/shared/oauth').OAuthAccountProviderType.GOOGLE | typeof import('@krgeobuk/shared/oauth').OAuthAccountProviderType.NAVER;
+  provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER;
   clientId: string;
   redirectUri: string;
 }
@@ -73,4 +74,3 @@ export interface SSOLoginRequest extends AuthLoginRequest {
   sessionId?: string;
   redirectUri?: string;
 }
-

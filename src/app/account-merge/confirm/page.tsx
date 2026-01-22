@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError, AccountMergeResponse } from '@/types';
-import { AccountMergeStatus } from '@/types';
+import { AccountMergeStatus, OAuthAccountProviderType } from '@/types';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
   const [status, setStatus] = useState<
@@ -158,9 +158,9 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   // Provider 이름
   const getProviderName = (provider: string) => {
     switch (provider.toLowerCase()) {
-      case 'google':
+      case OAuthAccountProviderType.GOOGLE:
         return 'Google';
-      case 'naver':
+      case OAuthAccountProviderType.NAVER:
         return 'Naver';
       default:
         return provider;
