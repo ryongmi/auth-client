@@ -2,6 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+import type { UserProfile } from '@krgeobuk/user/interfaces';
+
 import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
 import {
@@ -12,9 +15,7 @@ import {
   type OAuthEmailDuplicateDetails,
 } from '@/utils/oauthErrorMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
-
-import type { UserProfile } from '@krgeobuk/user/interfaces';
-import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { OAuthAccountProviderType } from '@/types';
 
 function OAuthAccountsContent(): React.JSX.Element {
   const router = useRouter();
@@ -129,7 +130,9 @@ function OAuthAccountsContent(): React.JSX.Element {
     }
   };
 
-  const handleLinkAccount = (provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER): void => {
+  const handleLinkAccount = (
+    provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER
+  ): void => {
     // oauthService를 통해 연동 URL 생성
     const linkUrl = oauthService.getLinkAccountUrl(provider);
     window.location.href = linkUrl;
@@ -253,10 +256,17 @@ function OAuthAccountsContent(): React.JSX.Element {
                   계정 병합 요청이 발송되었습니다
                 </h3>
                 <p className="text-sm text-blue-700 mb-2">
-                  해당 {mergeRequestSent.provider === OAuthAccountProviderType.GOOGLE ? 'Google' : mergeRequestSent.provider === OAuthAccountProviderType.NAVER ? 'Naver' : mergeRequestSent.provider} 계정은 다른 사용자에게 연결되어 있습니다.
+                  해당{' '}
+                  {mergeRequestSent.provider === OAuthAccountProviderType.GOOGLE
+                    ? 'Google'
+                    : mergeRequestSent.provider === OAuthAccountProviderType.NAVER
+                      ? 'Naver'
+                      : mergeRequestSent.provider}{' '}
+                  계정은 다른 사용자에게 연결되어 있습니다.
                 </p>
                 <p className="text-sm text-blue-600">
-                  계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이 병합됩니다.
+                  계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이
+                  병합됩니다.
                 </p>
                 <button
                   onClick={() => setMergeRequestSent(null)}
@@ -299,24 +309,26 @@ function OAuthAccountsContent(): React.JSX.Element {
                     </div>
                   </div>
                 </div>
-                {account.provider !== OAuthAccountProviderType.HOMEPAGE && linkedAccounts.length > 1 && (
-                  <button
-                    onClick={() => handleUnlinkAccount(account.provider)}
-                    className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-                  >
-                    연동 해제
-                  </button>
-                )}
+                {account.provider !== OAuthAccountProviderType.HOMEPAGE &&
+                  linkedAccounts.length > 1 && (
+                    <button
+                      onClick={() => handleUnlinkAccount(account.provider)}
+                      className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      연동 해제
+                    </button>
+                  )}
                 {account.provider === OAuthAccountProviderType.HOMEPAGE && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                     기본 계정
                   </span>
                 )}
-                {linkedAccounts.length === 1 && account.provider !== OAuthAccountProviderType.HOMEPAGE && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    해제 불가
-                  </span>
-                )}
+                {linkedAccounts.length === 1 &&
+                  account.provider !== OAuthAccountProviderType.HOMEPAGE && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      해제 불가
+                    </span>
+                  )}
               </div>
             ))}
           </div>
@@ -363,11 +375,12 @@ function OAuthAccountsContent(): React.JSX.Element {
               </div>
             )}
 
-            {isLinked(OAuthAccountProviderType.GOOGLE) && isLinked(OAuthAccountProviderType.NAVER) && (
-              <div className="text-center text-gray-500 py-8">
-                모든 OAuth 계정이 연동되었습니다.
-              </div>
-            )}
+            {isLinked(OAuthAccountProviderType.GOOGLE) &&
+              isLinked(OAuthAccountProviderType.NAVER) && (
+                <div className="text-center text-gray-500 py-8">
+                  모든 OAuth 계정이 연동되었습니다.
+                </div>
+              )}
           </div>
         </section>
 
