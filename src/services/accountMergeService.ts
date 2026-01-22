@@ -4,7 +4,6 @@ import type {
   InitiateAccountMergeDto,
   AccountMergeResponse,
   AccountMergeInitiateResponse,
-  AccountMergeActionResponse,
 } from '@/types';
 import { AxiosError } from 'axios';
 
@@ -124,14 +123,10 @@ export class AccountMergeService {
    * 계정 병합 승인 (User B가 승인)
    * @param requestId - 병합 요청 ID
    * @param accessToken - 인증 토큰
-   * @returns 처리 결과 메시지
    */
-  async confirmAccountMerge(
-    requestId: number,
-    accessToken: string
-  ): Promise<AccountMergeActionResponse> {
+  async confirmAccountMerge(requestId: number, accessToken: string): Promise<void> {
     try {
-      const response = await authApi.post<AccountMergeActionResponse>(
+      await authApi.post(
         `/account-merge/${requestId}/confirm`,
         {},
         {
@@ -140,7 +135,6 @@ export class AccountMergeService {
           },
         }
       );
-      return response.data;
     } catch (error) {
       throw this.convertToAuthError(error);
     }
@@ -150,14 +144,10 @@ export class AccountMergeService {
    * 계정 병합 거부 (User B가 거부)
    * @param requestId - 병합 요청 ID
    * @param accessToken - 인증 토큰
-   * @returns 처리 결과 메시지
    */
-  async rejectAccountMerge(
-    requestId: number,
-    accessToken: string
-  ): Promise<AccountMergeActionResponse> {
+  async rejectAccountMerge(requestId: number, accessToken: string): Promise<void> {
     try {
-      const response = await authApi.post<AccountMergeActionResponse>(
+      await authApi.post(
         `/account-merge/${requestId}/reject`,
         {},
         {
@@ -166,7 +156,6 @@ export class AccountMergeService {
           },
         }
       );
-      return response.data;
     } catch (error) {
       throw this.convertToAuthError(error);
     }

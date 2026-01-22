@@ -73,10 +73,3 @@ export interface SSOLoginRequest extends AuthLoginRequest {
   redirectUri?: string;
 }
 
-// ============================================================================
-// 계정 병합 관련 타입 정의 (auth-client 전용)
-// ============================================================================
-
-export interface AccountMergeActionResponse {
-  message: string;
-}
