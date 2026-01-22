@@ -14,6 +14,7 @@ export type { InitiateAccountMergeRequest as InitiateAccountMergeDto } from '@kr
 export type { InitiateAccountMergeResponse as AccountMergeInitiateResponse } from '@krgeobuk/account-merge/interfaces';
 export type { GetAccountMergeResponse as AccountMergeResponse } from '@krgeobuk/account-merge/interfaces';
 export { AccountMergeStatus } from '@krgeobuk/shared/account-merge';
+export { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 
 // ============================================================================
 // auth-client 전용 타입 정의
@@ -36,10 +37,10 @@ export interface OAuthCallbackParams {
   redirect_uri?: string;
 }
 
-export interface OAuthProvider {
+export interface OAuthProviderConfig {
   id: string;
   name: string;
-  provider: 'google' | 'naver';
+  provider: typeof import('@krgeobuk/shared/oauth').OAuthAccountProviderType.GOOGLE | typeof import('@krgeobuk/shared/oauth').OAuthAccountProviderType.NAVER;
   clientId: string;
   redirectUri: string;
 }

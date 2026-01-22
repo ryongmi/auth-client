@@ -8,15 +8,17 @@
  * 서버로부터 받은 에러 코드(예: OAUTH_101)를 사용자가 읽기 쉬운 메시지로 변환합니다.
  */
 
-/**
- * OAuth 제공자 타입
- */
-export type OAuthProvider = 'google' | 'naver' | 'homepage';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 
 /**
- * 로그인 방법 타입
+ * OAuth 제공자 타입 (공통패키지 enum 기반)
  */
-export type LoginMethod = 'email' | 'google' | 'naver';
+export type OAuthProvider = (typeof OAuthAccountProviderType)[keyof typeof OAuthAccountProviderType];
+
+/**
+ * 로그인 방법 타입 (email 포함)
+ */
+export type LoginMethod = 'email' | typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER;
 
 /**
  * 에러 타입 분류 (UI 스타일링용)
@@ -46,11 +48,11 @@ export interface OAuthAccountMergeDetails {
  */
 export function getProviderName(provider?: OAuthProvider): string | null {
   switch (provider) {
-    case 'google':
+    case OAuthAccountProviderType.GOOGLE:
       return 'Google';
-    case 'naver':
+    case OAuthAccountProviderType.NAVER:
       return 'Naver';
-    case 'homepage':
+    case OAuthAccountProviderType.HOMEPAGE:
       return '홈페이지';
     default:
       return null;
@@ -64,9 +66,9 @@ export function getLoginMethodName(method: LoginMethod): string {
   switch (method) {
     case 'email':
       return '이메일/비밀번호';
-    case 'google':
+    case OAuthAccountProviderType.GOOGLE:
       return 'Google';
-    case 'naver':
+    case OAuthAccountProviderType.NAVER:
       return 'Naver';
     default:
       return method;
