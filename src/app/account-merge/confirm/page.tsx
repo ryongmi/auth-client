@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
-import type { AuthError, AccountMergeResponse, AccountMergeStatus } from '@/types';
+import type { AuthError, AccountMergeResponse } from '@/types';
+import { AccountMergeStatus } from '@/types';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
   const [status, setStatus] = useState<
@@ -121,16 +122,34 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   // 상태별 메시지 및 스타일
   const getStatusDisplay = (mergeStatus: AccountMergeStatus) => {
     switch (mergeStatus) {
-      case 'PENDING':
+      // 대기 중 상태
+      case AccountMergeStatus.PENDING_EMAIL_VERIFICATION:
+      case AccountMergeStatus.EMAIL_VERIFIED:
         return { text: '대기 중', color: 'bg-yellow-100 text-yellow-800' };
-      case 'APPROVED':
-        return { text: '승인됨', color: 'bg-green-100 text-green-800' };
-      case 'REJECTED':
+
+      // 처리 중 상태
+      case AccountMergeStatus.IN_PROGRESS:
+      case AccountMergeStatus.STEP1_AUTH_BACKUP:
+      case AccountMergeStatus.STEP2_AUTHZ_MERGE:
+      case AccountMergeStatus.STEP3_MYPICK_MERGE:
+      case AccountMergeStatus.STEP4_USER_DELETE:
+      case AccountMergeStatus.STEP5_CACHE_INVALIDATE:
+        return { text: '처리 중', color: 'bg-blue-100 text-blue-800' };
+
+      // 완료 상태
+      case AccountMergeStatus.COMPLETED:
+        return { text: '완료됨', color: 'bg-green-100 text-green-800' };
+
+      // 거부/취소 상태
+      case AccountMergeStatus.CANCELLED:
         return { text: '거부됨', color: 'bg-red-100 text-red-800' };
-      case 'EXPIRED':
-        return { text: '만료됨', color: 'bg-gray-100 text-gray-800' };
-      case 'FAILED':
+
+      // 실패 상태
+      case AccountMergeStatus.FAILED:
+      case AccountMergeStatus.COMPENSATING:
+      case AccountMergeStatus.COMPENSATED:
         return { text: '실패', color: 'bg-red-100 text-red-800' };
+
       default:
         return { text: mergeStatus, color: 'bg-gray-100 text-gray-800' };
     }
@@ -240,7 +259,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
             </div>
 
             {/* 경고 메시지 */}
-            {mergeRequest.status === 'PENDING' && !isExpired && (
+            {mergeRequest.status === AccountMergeStatus.EMAIL_VERIFIED && !isExpired && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start">
                   <svg
@@ -269,7 +288,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
             )}
 
             {/* 버튼 */}
-            {mergeRequest.status === 'PENDING' && !isExpired ? (
+            {mergeRequest.status === AccountMergeStatus.EMAIL_VERIFIED && !isExpired ? (
               <div className="space-y-3">
                 <button
                   onClick={handleConfirm}

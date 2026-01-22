@@ -9,6 +9,12 @@ export type { AuthLoginResponse as LoginResponse } from '@krgeobuk/auth/interfac
 export type { AuthSignupRequest as SignupRequest } from '@krgeobuk/auth/interfaces';
 export type { AuthLoginResponse as SignupResponse } from '@krgeobuk/auth/interfaces';
 
+// 계정 병합 관련 타입 (공통패키지)
+export type { InitiateAccountMergeRequest as InitiateAccountMergeDto } from '@krgeobuk/account-merge/interfaces';
+export type { InitiateAccountMergeResponse as AccountMergeInitiateResponse } from '@krgeobuk/account-merge/interfaces';
+export type { GetAccountMergeResponse as AccountMergeResponse } from '@krgeobuk/account-merge/interfaces';
+export { AccountMergeStatus } from '@krgeobuk/shared/account-merge';
+
 // ============================================================================
 // auth-client 전용 타입 정의
 // ============================================================================
@@ -68,31 +74,8 @@ export interface SSOLoginRequest extends AuthLoginRequest {
 }
 
 // ============================================================================
-// 계정 병합 관련 타입 정의
+// 계정 병합 관련 타입 정의 (auth-client 전용)
 // ============================================================================
-
-export type AccountMergeStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'FAILED';
-
-export interface InitiateAccountMergeDto {
-  provider: string;
-  providerId: string;
-  email: string;
-}
-
-export interface AccountMergeResponse {
-  id: number;
-  createdAt: string;
-  expiresAt: string;
-  provider: string;
-  status: AccountMergeStatus;
-  sourceEmail: string;
-  targetEmail: string;
-}
-
-export interface AccountMergeInitiateResponse {
-  requestId: number;
-  message: string;
-}
 
 export interface AccountMergeActionResponse {
   message: string;
