@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError } from '@/types';
-import { OAuthAccountProviderType } from '@/types';
+import { getProviderLabel } from '@/utils/providerMapper';
 
 function AccountMergeRequestContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
@@ -21,18 +21,6 @@ function AccountMergeRequestContent(): React.JSX.Element {
   const provider = searchParams.get('provider') || '';
   const email = searchParams.get('email') || '';
   const providerId = searchParams.get('providerId') || '';
-
-  // Provider 이름
-  const getProviderName = (p: string) => {
-    switch (p.toLowerCase()) {
-      case OAuthAccountProviderType.GOOGLE:
-        return 'Google';
-      case OAuthAccountProviderType.NAVER:
-        return 'Naver';
-      default:
-        return p;
-    }
-  };
 
   // 초기화: 인증 정보 확인
   useEffect(() => {
@@ -144,7 +132,7 @@ function AccountMergeRequestContent(): React.JSX.Element {
             <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">OAuth 제공자</span>
-                <span className="font-medium text-gray-800">{getProviderName(provider)}</span>
+                <span className="font-medium text-gray-800">{getProviderLabel(provider)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">대상 이메일</span>

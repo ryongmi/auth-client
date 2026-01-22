@@ -14,6 +14,7 @@ import {
   type OAuthProvider,
   type OAuthEmailDuplicateDetails,
 } from '@/utils/oauthErrorMapper';
+import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
 import { OAuthAccountProviderType } from '@/types';
 
@@ -168,32 +169,6 @@ function OAuthAccountsContent(): React.JSX.Element {
         type: 'error',
         text: errorMessage,
       });
-    }
-  };
-
-  const getProviderLabel = (provider: string): string => {
-    switch (provider) {
-      case OAuthAccountProviderType.HOMEPAGE:
-        return '홈페이지';
-      case OAuthAccountProviderType.GOOGLE:
-        return 'Google';
-      case OAuthAccountProviderType.NAVER:
-        return 'Naver';
-      default:
-        return provider;
-    }
-  };
-
-  const getProviderIcon = (provider: string): string => {
-    switch (provider) {
-      case OAuthAccountProviderType.HOMEPAGE:
-        return '🏠';
-      case OAuthAccountProviderType.GOOGLE:
-        return '📧';
-      case OAuthAccountProviderType.NAVER:
-        return '💚';
-      default:
-        return '🔐';
     }
   };
 

@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError, AccountMergeResponse } from '@/types';
-import { AccountMergeStatus, OAuthAccountProviderType } from '@/types';
+import { AccountMergeStatus } from '@/types';
+import { getProviderLabel } from '@/utils/providerMapper';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
   const [status, setStatus] = useState<
@@ -155,18 +156,6 @@ function AccountMergeConfirmContent(): React.JSX.Element {
     }
   };
 
-  // Provider 이름
-  const getProviderName = (provider: string) => {
-    switch (provider.toLowerCase()) {
-      case OAuthAccountProviderType.GOOGLE:
-        return 'Google';
-      case OAuthAccountProviderType.NAVER:
-        return 'Naver';
-      default:
-        return provider;
-    }
-  };
-
   // 만료 여부 확인
   const isExpired = mergeRequest ? new Date(mergeRequest.expiresAt) < new Date() : false;
 
@@ -236,7 +225,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">OAuth 제공자</span>
                 <span className="font-medium text-gray-800">
-                  {getProviderName(mergeRequest.provider)}
+                  {getProviderLabel(mergeRequest.provider)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
