@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { authService } from '@/services/authService';
 import { AuthError } from '@/types';
+import { validateEmail } from '@/utils/validators';
 
 interface FormData {
   email: string;
@@ -39,13 +40,10 @@ export default function ForgotPasswordPage(): React.JSX.Element {
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.email) {
-      newErrors.email = '이메일을 입력해주세요';
-    } else {
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = '올바른 이메일 형식을 입력해주세요';
-      }
+    // 이메일 유효성 검사
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid && emailValidation.error) {
+      newErrors.email = emailValidation.error;
     }
 
     setErrors(newErrors);

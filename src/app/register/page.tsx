@@ -6,6 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { signupUser } from '@/store/slices/authSlice';
 import { AuthError } from '@/types';
+import { ERROR_MESSAGES } from '@/config/constants';
+import {
+  validateEmail,
+  validatePassword,
+  validatePasswordConfirm,
+  validateName,
+} from '@/utils/validators';
 
 function RegisterForm(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -53,32 +60,33 @@ function RegisterForm(): React.JSX.Element {
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.email) {
-      newErrors.email = '이메일을 입력해주세요';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = '올바른 이메일 형식을 입력해주세요';
+    // 이메일 유효성 검사
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid && emailValidation.error) {
+      newErrors.email = emailValidation.error;
     }
 
-    if (!formData.name) {
-      newErrors.name = '이름을 입력해주세요';
-    } else if (formData.name.length < 2) {
-      newErrors.name = '이름은 최소 2자 이상이어야 합니다';
+    // 이름 유효성 검사
+    const nameValidation = validateName(formData.name);
+    if (!nameValidation.isValid && nameValidation.error) {
+      newErrors.name = nameValidation.error;
     }
 
-    if (!formData.password) {
-      newErrors.password = '비밀번호를 입력해주세요';
-    } else if (formData.password.length < 8) {
-      newErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
+    // 비밀번호 유효성 검사
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid && passwordValidation.error) {
+      newErrors.password = passwordValidation.error;
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호 확인을 입력해주세요';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+    // 비밀번호 확인 유효성 검사
+    const confirmValidation = validatePasswordConfirm(formData.password, formData.confirmPassword);
+    if (!confirmValidation.isValid && confirmValidation.error) {
+      newErrors.confirmPassword = confirmValidation.error;
     }
 
+    // 약관 동의 확인
     if (!formData.agreedToTerms) {
-      newErrors.agreedToTerms = '이용약관에 동의해주세요';
+      newErrors.agreedToTerms = ERROR_MESSAGES.TERMS_REQUIRED;
     }
 
     setErrors(newErrors);

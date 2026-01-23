@@ -15,6 +15,13 @@ import {
   type OAuthEmailDuplicateDetails
 } from "@/utils/oauthErrorMapper";
 import { OAuthEmailDuplicateError } from "@/components/OAuthEmailDuplicateError";
+import { AUTH_CONFIG, ERROR_MESSAGES } from "@/config/constants";
+import {
+  validateInput,
+  validateEmail,
+  validatePassword,
+  validateSessionId,
+} from "@/utils/validators";
 
 function LoginPageContent(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -24,7 +31,7 @@ function LoginPageContent(): React.JSX.Element {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
-  const [remainingAttempts, setRemainingAttempts] = useState(5);
+  const [remainingAttempts, setRemainingAttempts] = useState(AUTH_CONFIG.LOGIN_MAX_ATTEMPTS);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<AuthError | null>(null);
@@ -47,8 +54,9 @@ function LoginPageContent(): React.JSX.Element {
 
     if (session) {
       // 세션 ID 유효성 검증
-      if (!/^[a-zA-Z0-9_-]{20,}$/.test(session)) {
-        setErrors({ submit: "잘못된 SSO 세션입니다." });
+      const sessionValidation = validateSessionId(session);
+      if (!sessionValidation.isValid) {
+        setErrors({ submit: sessionValidation.error || ERROR_MESSAGES.INVALID_SSO_SESSION });
         return;
       }
 
@@ -88,7 +96,7 @@ function LoginPageContent(): React.JSX.Element {
     }
 
     // 로그인 시도 횟수 확인
-    setRemainingAttempts(Math.max(0, 5 - loginAttempts));
+    setRemainingAttempts(Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts));
   }, [searchParams, loginAttempts]);
 
   // 에러 상태 정리
@@ -131,28 +139,12 @@ function LoginPageContent(): React.JSX.Element {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
 
-    // 기본 보안 검증
-    if (value.length > 254) {
+    // 입력 유효성 검사 (길이 제한 및 의심스러운 패턴 검사)
+    const inputValidation = validateInput(value);
+    if (!inputValidation.isValid) {
       setErrors((prev) => ({
         ...prev,
-        [name]: "입력값이 너무 깁니다.",
-      }));
-      return;
-    }
-
-    // 의심스러운 패턴 감지
-    const suspiciousPatterns = [
-      /['"]/g,
-      /union\s+select/i,
-      /or\s+1\s*=\s*1/i,
-      /<script/i,
-      /javascript:/i,
-    ];
-
-    if (suspiciousPatterns.some((pattern) => pattern.test(value))) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "잘못된 입력 형식입니다.",
+        [name]: inputValidation.error || "",
       }));
       return;
     }
@@ -176,28 +168,20 @@ function LoginPageContent(): React.JSX.Element {
 
     // Honeypot 검사 (봇 탐지)
     if (honeypotRef.current?.value) {
-      newErrors.submit = "비정상적인 요청이 감지되었습니다.";
+      newErrors.submit = ERROR_MESSAGES.SUSPICIOUS_REQUEST;
       return false;
     }
 
-    if (!formData.email) {
-      newErrors.email = "이메일을 입력해주세요";
-    } else {
-      const emailRegex =
-        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = "올바른 이메일 형식을 입력해주세요";
-      } else if (formData.email.length > 254) {
-        newErrors.email = "이메일 주소가 너무 깁니다";
-      }
+    // 이메일 유효성 검사
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid && emailValidation.error) {
+      newErrors.email = emailValidation.error;
     }
 
-    if (!formData.password) {
-      newErrors.password = "비밀번호를 입력해주세요";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "비밀번호는 최소 6자 이상이어야 합니다";
-    } else if (formData.password.length > 128) {
-      newErrors.password = "비밀번호가 너무 깁니다";
+    // 비밀번호 유효성 검사
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid && passwordValidation.error) {
+      newErrors.password = passwordValidation.error;
     }
 
     setErrors(newErrors);
@@ -224,7 +208,7 @@ function LoginPageContent(): React.JSX.Element {
       // 에러는 Redux slice에서 처리되지만, 재시도 가능 여부도 확인
       const authLoginError = loginError as AuthError;
       setLastError(authLoginError);
-      const remaining = Math.max(0, 5 - loginAttempts - 1);
+      const remaining = Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts - 1);
       setRemainingAttempts(remaining);
     }
   };
