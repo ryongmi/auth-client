@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { authService } from '@/services/authService';
 import { AuthError } from '@/types';
+import { StatusCard, StatusCardIcons } from '@/components/common';
 import { useFormInput } from '@/hooks/useFormInput';
 import { validateEmail } from '@/utils/validators';
 import {
@@ -90,41 +91,29 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          {/* 성공 메시지 */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-700">이메일을 확인하세요</h2>
-              <p className="text-gray-500">
-                비밀번호 재설정 링크를 <strong>{formData.email}</strong>로 발송했습니다.
-              </p>
-              <p className="text-sm text-gray-400">
-                이메일을 받지 못하셨다면 스팸 폴더를 확인해 주세요.
-              </p>
-
-              <div className="pt-4">
-                <Link
-                  href="/login"
-                  className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
-                >
-                  로그인 페이지로 돌아가기
-                </Link>
-              </div>
-            </div>
+            <StatusCard
+              type="success"
+              icon={StatusCardIcons.Check}
+              title="이메일을 확인하세요"
+              description={
+                <>
+                  <p>
+                    비밀번호 재설정 링크를 <strong>{formData.email}</strong>로 발송했습니다.
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    이메일을 받지 못하셨다면 스팸 폴더를 확인해 주세요.
+                  </p>
+                </>
+              }
+              actions={[
+                {
+                  label: '로그인 페이지로 돌아가기',
+                  href: '/login',
+                  variant: 'link',
+                },
+              ]}
+            />
           </div>
         </div>
       </div>

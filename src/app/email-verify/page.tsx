@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
+import { StatusCard, StatusCardIcons } from '@/components/common';
 
 function EmailVerifyContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -51,64 +52,39 @@ function EmailVerifyContent(): React.JSX.Element {
         )}
 
         {status === 'success' && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">인증 완료!</h2>
-            <p className="text-gray-600 mb-2">이메일 인증이 성공적으로 완료되었습니다.</p>
-            <p className="text-sm text-gray-500">잠시 후 로그인 페이지로 이동합니다...</p>
-          </div>
+          <StatusCard
+            type="success"
+            icon={StatusCardIcons.Check}
+            title="인증 완료!"
+            description={
+              <>
+                <p>이메일 인증이 성공적으로 완료되었습니다.</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  잠시 후 로그인 페이지로 이동합니다...
+                </p>
+              </>
+            }
+          />
         )}
 
         {status === 'error' && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">인증 실패</h2>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-600">{error}</p>
-            </div>
-            <div className="space-y-2">
-              <a
-                href="/email-verify/resend"
-                className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                인증 메일 재발송
-              </a>
-              <a
-                href="/login"
-                className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                로그인 페이지로 이동
-              </a>
-            </div>
-          </div>
+          <StatusCard
+            type="error"
+            icon={StatusCardIcons.Close}
+            title="인증 실패"
+            description={error || '이메일 인증에 실패했습니다.'}
+            actions={[
+              {
+                label: '인증 메일 재발송',
+                href: '/email-verify/resend',
+              },
+              {
+                label: '로그인 페이지로 이동',
+                href: '/login',
+                variant: 'secondary',
+              },
+            ]}
+          />
         )}
       </div>
     </div>

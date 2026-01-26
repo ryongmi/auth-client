@@ -14,6 +14,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
+import { StatusCard, StatusCardIcons } from '@/components/common';
 
 function ResetPasswordPageContent(): React.JSX.Element {
   // 폼 입력 관리
@@ -129,53 +130,19 @@ function ResetPasswordPageContent(): React.JSX.Element {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-md w-full space-y-8">
-          {/* 성공 메시지 */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-700">
-                비밀번호 재설정 완료
-              </h2>
-              <p className="text-gray-500">
-                새 비밀번호로 성공적으로 변경되었습니다.
-              </p>
-
-              <div className="pt-4">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  로그인하기
-                </Link>
-              </div>
-            </div>
+            <StatusCard
+              type="success"
+              icon={StatusCardIcons.Check}
+              title="비밀번호 재설정 완료"
+              description="새 비밀번호로 성공적으로 변경되었습니다."
+              actions={[
+                {
+                  label: '로그인하기',
+                  href: '/login',
+                },
+              ]}
+            />
           </div>
         </div>
       </div>
