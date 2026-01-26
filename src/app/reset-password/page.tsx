@@ -5,24 +5,29 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { AuthError } from '@/types';
-
-interface FormData {
-  password: string;
-  confirmPassword: string;
-}
+import { useFormInput } from '@/hooks/useFormInput';
+import { validatePassword, validatePasswordConfirm } from '@/utils/validators';
 
 function ResetPasswordPageContent(): React.JSX.Element {
-  const [formData, setFormData] = useState<FormData>({
-    password: '',
-    confirmPassword: '',
-  });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // 폼 입력 관리
+  const {
+    values: formData,
+    errors,
+    handleChange,
+    setError,
+    setErrors,
+    clearAllErrors,
+  } = useFormInput(
+    { password: '', confirmPassword: '' },
+    { validateOnChange: true }
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [lastError, setLastError] = useState<AuthError | null>(null);
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,47 +37,29 @@ function ResetPasswordPageContent(): React.JSX.Element {
       router.push('/forgot-password');
       return;
     }
-    
+
     // 토큰 유효성 기본 검증
     if (tokenParam.length < 10) {
-      setErrors({ submit: '유효하지 않은 재설정 링크입니다' });
+      setError('submit', '유효하지 않은 재설정 링크입니다');
       return;
     }
-    
-    setToken(tokenParam);
-  }, [searchParams, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // 입력 시 에러 제거
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
+    setToken(tokenParam);
+  }, [searchParams, router, setError]);
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.password) {
-      newErrors.password = '새 비밀번호를 입력해주세요';
-    } else if (formData.password.length < 8) {
-      newErrors.password = '비밀번호는 최소 8자 이상이어야 합니다';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = '비밀번호는 대소문자와 숫자를 포함해야 합니다';
+    // 비밀번호 유효성 검사
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid && passwordValidation.error) {
+      newErrors.password = passwordValidation.error;
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호 확인을 입력해주세요';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '비밀번호가 일치하지 않습니다';
+    // 비밀번호 확인 유효성 검사
+    const confirmValidation = validatePasswordConfirm(formData.password, formData.confirmPassword);
+    if (!confirmValidation.isValid && confirmValidation.error) {
+      newErrors.confirmPassword = confirmValidation.error;
     }
 
     setErrors(newErrors);
@@ -96,9 +83,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     } catch (error) {
       const authError = error as AuthError;
       const errorMessage = authError?.message || '비밀번호 재설정 중 오류가 발생했습니다';
-      setErrors({ 
-        submit: errorMessage 
-      });
+      setError('submit', errorMessage);
       setLastError(authError);
     } finally {
       setIsLoading(false);
@@ -110,7 +95,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     if (!lastError || !lastError.isRetryable || !token) return;
 
     setIsRetrying(true);
-    setErrors({});
+    clearAllErrors();
 
     try {
       await authService.resetPassword({
@@ -123,7 +108,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
     } catch (retryError) {
       const authRetryError = retryError as AuthError;
       setLastError(authRetryError);
-      setErrors({ submit: authRetryError.message });
+      setError('submit', authRetryError.message);
     } finally {
       setIsRetrying(false);
     }

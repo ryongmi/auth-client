@@ -4,50 +4,53 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
+import { useFormInput } from '@/hooks/useFormInput';
+import { validateEmail } from '@/utils/validators';
 
 export default function EmailVerifyResendPage(): React.JSX.Element {
-  const [email, setEmail] = useState('');
+  // 폼 입력 관리
+  const {
+    values: formData,
+    errors,
+    handleChange,
+    setError,
+    clearAllErrors,
+  } = useFormInput(
+    { email: '' },
+    { validateOnChange: true, trimOnChange: true }
+  );
+
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [error, setError] = useState<string | null>(null);
   const [isRetryable, setIsRetryable] = useState(false);
   const router = useRouter();
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    setError(null);
+    clearAllErrors();
 
     // 이메일 검증
-    if (!email) {
-      setError('이메일을 입력해주세요.');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('올바른 이메일 형식이 아닙니다.');
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      setError('email', emailValidation.error || '올바른 이메일 형식이 아닙니다.');
       return;
     }
 
     setStatus('loading');
 
     try {
-      await authService.requestEmailVerification(email);
+      await authService.requestEmailVerification(formData.email);
       setStatus('success');
     } catch (err) {
       const authError = err as AuthError;
       setStatus('error');
-      setError(authError.message || '인증 메일 발송에 실패했습니다.');
+      setError('submit', authError.message || '인증 메일 발송에 실패했습니다.');
       setIsRetryable(authError.isRetryable || false);
     }
   };
 
   const handleRetry = (): void => {
     setStatus('idle');
-    setError(null);
+    clearAllErrors();
     setIsRetryable(false);
   };
 
@@ -94,7 +97,7 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
                 <div>
                   <h3 className="font-medium text-green-800 mb-1">메일 발송 완료</h3>
                   <p className="text-sm text-green-700">
-                    <strong>{email}</strong>로 인증 메일이 발송되었습니다.
+                    <strong>{formData.email}</strong>로 인증 메일이 발송되었습니다.
                   </p>
                   <p className="text-sm text-green-700 mt-2">
                     메일함을 확인하시고 인증 링크를 클릭해주세요.
@@ -127,16 +130,22 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="example@email.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow ${
+                  errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
                 disabled={status === 'loading'}
               />
+              {errors.email && (
+                <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
-            {error && (
+            {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-start">
                   <svg
@@ -153,7 +162,7 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
                     />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm text-red-700">{errors.submit}</p>
                     {isRetryable && (
                       <button
                         type="button"
