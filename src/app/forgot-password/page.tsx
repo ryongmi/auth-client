@@ -4,38 +4,27 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { authService } from '@/services/authService';
 import { AuthError } from '@/types';
+import { useFormInput } from '@/hooks/useFormInput';
 import { validateEmail } from '@/utils/validators';
 
-interface FormData {
-  email: string;
-}
-
 export default function ForgotPasswordPage(): React.JSX.Element {
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-  });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // 폼 입력 관리
+  const {
+    values: formData,
+    errors,
+    handleChange,
+    setError,
+    setErrors,
+    clearAllErrors,
+  } = useFormInput(
+    { email: '' },
+    { validateOnChange: true, trimOnChange: true }
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [lastError, setLastError] = useState<AuthError | null>(null);
-  
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value.trim(),
-    }));
-    
-    // 입력 시 에러 제거
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -63,7 +52,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     } catch (error) {
       const authError = error as AuthError;
       const errorMessage = authError?.message || '요청 처리 중 오류가 발생했습니다';
-      setErrors({ submit: errorMessage });
+      setError('submit', errorMessage);
       setLastError(authError);
     } finally {
       setIsLoading(false);
@@ -75,7 +64,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     if (!lastError || !lastError.isRetryable) return;
 
     setIsRetrying(true);
-    setErrors({});
+    clearAllErrors();
 
     try {
       await authService.forgotPassword(formData);
@@ -84,7 +73,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
     } catch (retryError) {
       const authRetryError = retryError as AuthError;
       setLastError(authRetryError);
-      setErrors({ submit: authRetryError.message });
+      setError('submit', authRetryError.message);
     } finally {
       setIsRetrying(false);
     }
