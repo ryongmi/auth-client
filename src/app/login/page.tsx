@@ -16,6 +16,13 @@ import {
   validatePassword,
   validateSessionId,
 } from "@/utils/validators";
+import {
+  FormInput,
+  FormInputIcons,
+  FormError,
+  SubmitButton,
+  SubmitButtonIcons,
+} from "@/components/form";
 
 function LoginPageContent(): React.JSX.Element {
   // 폼 입력 관리
@@ -241,120 +248,28 @@ function LoginPageContent(): React.JSX.Element {
             />
 
             {/* 이메일 */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-600 mb-2"
-              >
-                이메일 주소
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
-                    />
-                  </svg>
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                    errors.email
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300 bg-white"
-                  }`}
-                  placeholder="이메일을 입력하세요"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            <FormInput
+              name="email"
+              label="이메일 주소"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="이메일을 입력하세요"
+              error={errors.email}
+              icon={FormInputIcons.Email}
+            />
 
             {/* 비밀번호 */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-600 mb-2"
-              >
-                비밀번호
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                    errors.password
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300 bg-white"
-                  }`}
-                  placeholder="비밀번호를 입력하세요"
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-600 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  {errors.password}
-                </p>
-              )}
-            </div>
+            <FormInput
+              name="password"
+              label="비밀번호"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="비밀번호를 입력하세요"
+              error={errors.password}
+              icon={FormInputIcons.Password}
+            />
 
             {/* 로그인 유지 및 비밀번호 찾기 */}
             <div className="flex items-center justify-between">
@@ -407,77 +322,13 @@ function LoginPageContent(): React.JSX.Element {
 
             {/* 향상된 에러 표시 (일반 에러용) */}
             {!oauthEmailDuplicateDetails && errors.submit && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-sm text-red-800 font-medium">
-                      {errors.submit}
-                    </p>
-                    
-                    {/* 재시도 가능한 에러인 경우 재시도 버튼 표시 */}
-                    {lastError?.isRetryable && (
-                      <div className="mt-3 flex items-center space-x-3">
-                        <button
-                          onClick={handleRetry}
-                          disabled={isRetrying}
-                          className="text-sm text-red-700 hover:text-red-900 font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          {isRetrying ? (
-                            <>
-                              <svg className="animate-spin w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              재시도 중...
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              다시 시도
-                            </>
-                          )}
-                        </button>
-                        {retryCount > 0 && (
-                          <span className="text-xs text-red-600">
-                            ({retryCount}번째 재시도)
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* 네트워크 에러인 경우 추가 안내 */}
-                    {lastError?.code === 'NETWORK_ERROR' && (
-                      <div className="mt-2 text-xs text-red-600">
-                        • 인터넷 연결을 확인해주세요<br/>
-                        • 방화벽이나 보안 프로그램이 차단하는지 확인해주세요
-                      </div>
-                    )}
-
-                    {/* 서버 에러인 경우 추가 안내 */}
-                    {lastError?.code === 'SERVER_ERROR' && (
-                      <div className="mt-2 text-xs text-red-600">
-                        • 서버 점검 중일 수 있습니다<br/>
-                        • 잠시 후 다시 시도해주세요
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <FormError
+                message={errors.submit}
+                error={lastError}
+                onRetry={handleRetry}
+                isRetrying={isRetrying}
+                retryCount={retryCount}
+              />
             )}
 
             {/* Rate Limit 경고 */}
@@ -506,70 +357,14 @@ function LoginPageContent(): React.JSX.Element {
             )}
 
             {/* 로그인 버튼 */}
-            <button
-              type="submit"
-              disabled={isLoading || isBlocked || isRetrying}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            <SubmitButton
+              isLoading={isLoading || isRetrying}
+              loadingText={isRetrying ? '재시도 중...' : '로그인 중...'}
+              isBlocked={isBlocked}
+              icon={SubmitButtonIcons.Login}
             >
-              {isBlocked ? (
-                <>
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"
-                    />
-                  </svg>
-                  일시적으로 차단됨
-                </>
-              ) : isLoading || isRetrying ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  {isRetrying ? '재시도 중...' : '로그인 중...'}
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  로그인
-                </>
-              )}
-            </button>
+              로그인
+            </SubmitButton>
           </form>
 
           {/* 구분선 */}

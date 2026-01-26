@@ -14,6 +14,13 @@ import {
   validatePasswordConfirm,
   validateName,
 } from '@/utils/validators';
+import {
+  FormInput,
+  FormInputIcons,
+  FormError,
+  SubmitButton,
+  SubmitButtonIcons,
+} from '@/components/form';
 
 function RegisterForm(): React.JSX.Element {
   // 폼 입력 관리
@@ -163,101 +170,63 @@ function RegisterForm(): React.JSX.Element {
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-2">
-                이메일 주소
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                  errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-                }`}
-                placeholder="이메일을 입력하세요"
-              />
-              {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
-            </div>
+            <FormInput
+              name="email"
+              label="이메일 주소"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="이메일을 입력하세요"
+              error={errors.email}
+              icon={FormInputIcons.Email}
+            />
 
             {/* 이름 */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-2">
-                이름
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleChange}
-                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                  errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-                }`}
-                placeholder="이름을 입력하세요"
-              />
-              {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
-            </div>
+            <FormInput
+              name="name"
+              label="이름"
+              type="text"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="이름을 입력하세요"
+              error={errors.name}
+              icon={FormInputIcons.User}
+            />
 
             {/* 닉네임 (선택사항) */}
-            <div>
-              <label htmlFor="nickname" className="block text-sm font-medium text-gray-600 mb-2">
-                닉네임 <span className="text-gray-400">(선택사항)</span>
-              </label>
-              <input
-                id="nickname"
-                name="nickname"
-                type="text"
-                value={formData.nickname}
-                onChange={handleChange}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                placeholder="닉네임을 입력하세요"
-              />
-            </div>
+            <FormInput
+              name="nickname"
+              label="닉네임"
+              type="text"
+              value={formData.nickname}
+              onChange={handleChange}
+              placeholder="닉네임을 입력하세요"
+              labelSuffix={<span className="text-gray-400">(선택사항)</span>}
+            />
 
             {/* 비밀번호 */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-2">
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                  errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-                }`}
-                placeholder="비밀번호를 입력하세요"
-              />
-              {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
-            </div>
+            <FormInput
+              name="password"
+              label="비밀번호"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="비밀번호를 입력하세요"
+              error={errors.password}
+              icon={FormInputIcons.Password}
+            />
 
             {/* 비밀번호 확인 */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-600 mb-2"
-              >
-                비밀번호 확인
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                  errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-                }`}
-                placeholder="비밀번호를 다시 입력하세요"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
-            </div>
+            <FormInput
+              name="confirmPassword"
+              label="비밀번호 확인"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="비밀번호를 다시 입력하세요"
+              error={errors.confirmPassword}
+              icon={FormInputIcons.Check}
+            />
 
             {/* 이용약관 동의 */}
             <div>
@@ -288,129 +257,22 @@ function RegisterForm(): React.JSX.Element {
 
             {/* 향상된 에러 표시 */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-sm text-red-800 font-medium">{error}</p>
-
-                    {/* 재시도 가능한 에러인 경우 재시도 버튼 표시 */}
-                    {lastError?.isRetryable && (
-                      <div className="mt-3">
-                        <button
-                          onClick={handleRetry}
-                          disabled={isRetrying}
-                          className="text-sm text-red-700 hover:text-red-900 font-medium underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          {isRetrying ? (
-                            <>
-                              <svg
-                                className="animate-spin w-3 h-3 mr-1"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                              </svg>
-                              재시도 중...
-                            </>
-                          ) : (
-                            <>
-                              <svg
-                                className="w-3 h-3 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                />
-                              </svg>
-                              다시 시도
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <FormError
+                message={error}
+                error={lastError}
+                onRetry={handleRetry}
+                isRetrying={isRetrying}
+              />
             )}
 
             {/* 회원가입 버튼 */}
-            <button
-              type="submit"
-              disabled={isLoading || isRetrying}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            <SubmitButton
+              isLoading={isLoading || isRetrying}
+              loadingText={isRetrying ? '재시도 중...' : '가입 중...'}
+              icon={SubmitButtonIcons.Signup}
             >
-              {isLoading || isRetrying ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  {isRetrying ? '재시도 중...' : '가입 중...'}
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                    />
-                  </svg>
-                  회원가입
-                </>
-              )}
-            </button>
+              회원가입
+            </SubmitButton>
           </form>
 
           {/* 로그인 링크 */}

@@ -6,6 +6,13 @@ import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
 import { useFormInput } from '@/hooks/useFormInput';
 import { validateEmail } from '@/utils/validators';
+import {
+  FormInput,
+  FormInputIcons,
+  FormError,
+  SubmitButton,
+  SubmitButtonIcons,
+} from '@/components/form';
 
 export default function EmailVerifyResendPage(): React.JSX.Element {
   // 폼 입력 관리
@@ -21,7 +28,7 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
   );
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [isRetryable, setIsRetryable] = useState(false);
+  const [lastError, setLastError] = useState<AuthError | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -40,18 +47,19 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
     try {
       await authService.requestEmailVerification(formData.email);
       setStatus('success');
+      setLastError(null);
     } catch (err) {
       const authError = err as AuthError;
       setStatus('error');
       setError('submit', authError.message || '인증 메일 발송에 실패했습니다.');
-      setIsRetryable(authError.isRetryable || false);
+      setLastError(authError);
     }
   };
 
   const handleRetry = (): void => {
     setStatus('idle');
     clearAllErrors();
-    setIsRetryable(false);
+    setLastError(null);
   };
 
   return (
@@ -124,96 +132,33 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                이메일 주소
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="example@email.com"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow ${
-                  errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-                disabled={status === 'loading'}
-              />
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
+            <FormInput
+              name="email"
+              label="이메일 주소"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="example@email.com"
+              error={errors.email}
+              icon={FormInputIcons.Email}
+              disabled={status === 'loading'}
+            />
 
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-red-600 mt-0.5 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-sm text-red-700">{errors.submit}</p>
-                    {isRetryable && (
-                      <button
-                        type="button"
-                        onClick={handleRetry}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium mt-2 underline"
-                      >
-                        다시 시도
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <FormError
+                message={errors.submit}
+                error={lastError}
+                onRetry={handleRetry}
+              />
             )}
 
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className={`w-full font-medium py-3 px-4 rounded-lg transition-colors ${
-                status === 'loading'
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
+            <SubmitButton
+              isLoading={status === 'loading'}
+              loadingText="발송 중..."
+              icon={SubmitButtonIcons.Send}
             >
-              {status === 'loading' ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  발송 중...
-                </span>
-              ) : (
-                '인증 메일 발송'
-              )}
-            </button>
+              인증 메일 발송
+            </SubmitButton>
 
             <div className="text-center">
               <a

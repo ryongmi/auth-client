@@ -19,7 +19,7 @@ export interface FormInputProps {
   /** 플레이스홀더 */
   placeholder?: string;
   /** 에러 메시지 */
-  error?: string;
+  error?: string | undefined;
   /** 비활성화 여부 */
   disabled?: boolean;
   /** 왼쪽 아이콘 (ReactNode) */
