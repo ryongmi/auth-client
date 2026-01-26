@@ -7,35 +7,36 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser, clearError } from "@/store/slices/authSlice";
 import { authService } from "@/services/authService";
 import { AuthError } from "@/types";
-import {
-  getOAuthErrorMessage,
-  isOAuthErrorCode,
-  parseOAuthEmailDuplicateError,
-  type OAuthProvider,
-  type OAuthEmailDuplicateDetails
-} from "@/utils/oauthErrorMapper";
 import { OAuthEmailDuplicateError } from "@/components/OAuthEmailDuplicateError";
+import { useOAuthErrorHandling } from "@/hooks/useOAuthErrorHandling";
+import { useFormInput } from "@/hooks/useFormInput";
 import { AUTH_CONFIG, ERROR_MESSAGES } from "@/config/constants";
 import {
-  validateInput,
   validateEmail,
   validatePassword,
   validateSessionId,
 } from "@/utils/validators";
 
 function LoginPageContent(): React.JSX.Element {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // 폼 입력 관리
+  const {
+    values: formData,
+    errors,
+    handleChange,
+    setError,
+    setErrors,
+    clearAllErrors,
+  } = useFormInput(
+    { email: "", password: "" },
+    { validateOnChange: true, trimOnChange: true }
+  );
+
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
-  const [remainingAttempts, setRemainingAttempts] = useState(AUTH_CONFIG.LOGIN_MAX_ATTEMPTS);
+  const [remainingAttempts, setRemainingAttempts] = useState<number>(AUTH_CONFIG.LOGIN_MAX_ATTEMPTS);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<AuthError | null>(null);
-  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] = useState<OAuthEmailDuplicateDetails | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,7 +48,15 @@ function LoginPageContent(): React.JSX.Element {
     (state) => state.auth
   );
 
-  // SSO 리다이렉트 세션 확인 및 OAuth 에러 처리
+  // OAuth 에러 처리 훅
+  const {
+    oauthEmailDuplicateDetails,
+    errorMessage: oauthErrorMessage,
+    clearEmailDuplicateDetails,
+    clearErrorMessage,
+  } = useOAuthErrorHandling();
+
+  // SSO 리다이렉트 세션 확인
   useEffect(() => {
     // URL 파라미터에서 SSO 세션 정보 확인
     const session = searchParams.get("redirect_session");
@@ -56,7 +65,7 @@ function LoginPageContent(): React.JSX.Element {
       // 세션 ID 유효성 검증
       const sessionValidation = validateSessionId(session);
       if (!sessionValidation.isValid) {
-        setErrors({ submit: sessionValidation.error || ERROR_MESSAGES.INVALID_SSO_SESSION });
+        setError("submit", sessionValidation.error || ERROR_MESSAGES.INVALID_SSO_SESSION);
         return;
       }
 
@@ -64,56 +73,33 @@ function LoginPageContent(): React.JSX.Element {
       setIsSSO(true);
     }
 
-    // OAuth 에러 처리
-    const oauthError = searchParams.get("error");
-
-    if (oauthError && isOAuthErrorCode(oauthError)) {
-      // OAUTH_205 (이메일 중복) 에러는 상세 UI 표시
-      if (oauthError === 'OAUTH_205') {
-        const details = parseOAuthEmailDuplicateError(searchParams);
-        if (details) {
-          setOauthEmailDuplicateDetails(details);
-        } else {
-          // 파싱 실패 시 기본 메시지 표시
-          const provider = searchParams.get("provider") as OAuthProvider | undefined;
-          setErrors({ submit: getOAuthErrorMessage(oauthError, provider) });
-        }
-      } else {
-        // 다른 OAuth 에러는 기본 메시지만 표시
-        const provider = searchParams.get("provider") as OAuthProvider | undefined;
-        const errorMessage = getOAuthErrorMessage(oauthError, provider);
-        setErrors({ submit: errorMessage });
-      }
-
-      // URL 정리 (에러 메시지는 표시하되, URL에서는 제거)
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete("error");
-      newUrl.searchParams.delete("provider");
-      newUrl.searchParams.delete("email");
-      newUrl.searchParams.delete("methods");
-      newUrl.searchParams.delete("suggestion");
-      window.history.replaceState({}, "", newUrl.toString());
-    }
-
     // 로그인 시도 횟수 확인
     setRemainingAttempts(Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts));
-  }, [searchParams, loginAttempts]);
+  }, [searchParams, loginAttempts, setError]);
+
+  // OAuth 에러 메시지를 폼 에러로 동기화
+  useEffect(() => {
+    if (oauthErrorMessage) {
+      setError("submit", oauthErrorMessage);
+      clearErrorMessage();
+    }
+  }, [oauthErrorMessage, clearErrorMessage, setError]);
 
   // 에러 상태 정리
   useEffect(() => {
     if (error) {
-      setErrors({ submit: error });
+      setError("submit", error);
       setLastError(null); // Redux 에러 우선
       dispatch(clearError());
     }
-  }, [error, dispatch]);
+  }, [error, dispatch, setError]);
 
   // 수동 재시도 함수
   const handleRetry = async (): Promise<void> => {
     if (!lastError || !lastError.isRetryable) return;
 
     setIsRetrying(true);
-    setErrors({});
+    clearAllErrors();
     setRetryCount(prev => prev + 1);
 
     try {
@@ -130,36 +116,9 @@ function LoginPageContent(): React.JSX.Element {
     } catch (retryError) {
       const authRetryError = retryError as AuthError;
       setLastError(authRetryError);
-      setErrors({ submit: authRetryError.message });
+      setError("submit", authRetryError.message);
     } finally {
       setIsRetrying(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-
-    // 입력 유효성 검사 (길이 제한 및 의심스러운 패턴 검사)
-    const inputValidation = validateInput(value);
-    if (!inputValidation.isValid) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: inputValidation.error || "",
-      }));
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value.trim(),
-    }));
-
-    // 입력 시 에러 제거
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
     }
   };
 
@@ -428,11 +387,11 @@ function LoginPageContent(): React.JSX.Element {
               <OAuthEmailDuplicateError
                 details={oauthEmailDuplicateDetails}
                 onLoginClick={() => {
-                  setOauthEmailDuplicateDetails(null);
+                  clearEmailDuplicateDetails();
                   // 로그인 폼으로 스크롤 (이미 로그인 페이지이므로)
                 }}
                 onRetryClick={() => {
-                  setOauthEmailDuplicateDetails(null);
+                  clearEmailDuplicateDetails();
                   router.push('/oauth');
                 }}
                 onMergeClick={() => {

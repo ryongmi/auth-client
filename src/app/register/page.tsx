@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { signupUser } from '@/store/slices/authSlice';
 import { AuthError } from '@/types';
 import { ERROR_MESSAGES } from '@/config/constants';
+import { useFormInput } from '@/hooks/useFormInput';
 import {
   validateEmail,
   validatePassword,
@@ -15,15 +16,26 @@ import {
 } from '@/utils/validators';
 
 function RegisterForm(): React.JSX.Element {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    nickname: '',
-    agreedToTerms: false,
-  });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // 폼 입력 관리
+  const {
+    values: formData,
+    errors,
+    handleChange,
+    setError,
+    setErrors,
+    clearAllErrors,
+  } = useFormInput(
+    {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      name: '',
+      nickname: '',
+      agreedToTerms: false,
+    },
+    { validateOnChange: true }
+  );
+
   const [isRetrying, setIsRetrying] = useState(false);
   const [lastError, setLastError] = useState<AuthError | null>(null);
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
@@ -40,22 +52,6 @@ function RegisterForm(): React.JSX.Element {
       setRedirectSession(session);
     }
   }, [searchParams]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-
-    // 입력 시 에러 제거
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -127,7 +123,7 @@ function RegisterForm(): React.JSX.Element {
     if (!lastError || !lastError.isRetryable) return;
 
     setIsRetrying(true);
-    setErrors({});
+    clearAllErrors();
 
     try {
       const signupResponse = await dispatch(
@@ -149,7 +145,7 @@ function RegisterForm(): React.JSX.Element {
     } catch (retryError) {
       const authRetryError = retryError as AuthError;
       setLastError(authRetryError);
-      setErrors({ submit: authRetryError.message });
+      setError("submit", authRetryError.message);
     } finally {
       setIsRetrying(false);
     }

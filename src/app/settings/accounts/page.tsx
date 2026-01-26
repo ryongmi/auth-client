@@ -7,15 +7,9 @@ import type { UserProfile } from '@krgeobuk/user/interfaces';
 
 import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
-import {
-  getOAuthErrorMessage,
-  isOAuthErrorCode,
-  parseOAuthEmailDuplicateError,
-  type OAuthProvider,
-  type OAuthEmailDuplicateDetails,
-} from '@/utils/oauthErrorMapper';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
+import { useOAuthErrorHandling } from '@/hooks/useOAuthErrorHandling';
 import { OAuthAccountProviderType } from '@/types';
 
 function OAuthAccountsContent(): React.JSX.Element {
@@ -26,55 +20,29 @@ function OAuthAccountsContent(): React.JSX.Element {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [_userInfo, setUserInfo] = useState<UserProfile | null>(null);
-  const [oauthEmailDuplicateDetails, setOauthEmailDuplicateDetails] =
-    useState<OAuthEmailDuplicateDetails | null>(null);
-  const [mergeRequestSent, setMergeRequestSent] = useState<{ provider: string } | null>(null);
 
-  // 연동 완료 메시지 및 OAuth 에러 처리
+  // OAuth 에러 처리 훅
+  const {
+    oauthEmailDuplicateDetails,
+    mergeRequestSent,
+    errorMessage: oauthErrorMessage,
+    clearEmailDuplicateDetails,
+    clearMergeRequestSent,
+    clearErrorMessage,
+  } = useOAuthErrorHandling();
+
+  // OAuth 에러 메시지를 message 상태로 동기화
+  useEffect(() => {
+    if (oauthErrorMessage) {
+      setMessage({ type: 'error', text: oauthErrorMessage });
+      clearErrorMessage();
+    }
+  }, [oauthErrorMessage, clearErrorMessage]);
+
+  // 연동 완료 메시지 처리
   useEffect(() => {
     const linked = searchParams.get('linked');
     const provider = searchParams.get('provider');
-    const oauthError = searchParams.get('error');
-
-    // OAuth 에러 처리
-    if (oauthError && isOAuthErrorCode(oauthError)) {
-      // OAUTH_205 (이메일 중복) 에러는 상세 UI 표시
-      if (oauthError === 'OAUTH_205') {
-        const details = parseOAuthEmailDuplicateError(searchParams);
-        if (details) {
-          setOauthEmailDuplicateDetails(details);
-        } else {
-          // 파싱 실패 시 기본 메시지 표시
-          const providerType = provider as OAuthProvider | undefined;
-          setMessage({
-            type: 'error',
-            text: getOAuthErrorMessage(oauthError, providerType),
-          });
-        }
-      } else if (oauthError === 'OAUTH_202') {
-        // OAUTH_202 (다른 사용자가 사용 중) - 계정 병합 요청 발송됨
-        const providerType = provider as OAuthProvider | undefined;
-        setMergeRequestSent({ provider: providerType || 'unknown' });
-      } else {
-        // 다른 OAuth 에러는 기본 메시지만 표시
-        const providerType = provider as OAuthProvider | undefined;
-        const errorMessage = getOAuthErrorMessage(oauthError, providerType);
-        setMessage({
-          type: 'error',
-          text: errorMessage,
-        });
-      }
-
-      // URL 파라미터 제거
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('error');
-      newUrl.searchParams.delete('provider');
-      newUrl.searchParams.delete('email');
-      newUrl.searchParams.delete('methods');
-      newUrl.searchParams.delete('suggestion');
-      window.history.replaceState({}, '', newUrl.toString());
-      return;
-    }
 
     // 연동 성공 메시지
     if (linked === 'true' && provider && accessToken) {
@@ -198,11 +166,11 @@ function OAuthAccountsContent(): React.JSX.Element {
             <OAuthEmailDuplicateError
               details={oauthEmailDuplicateDetails}
               onLoginClick={() => {
-                setOauthEmailDuplicateDetails(null);
+                clearEmailDuplicateDetails();
                 router.push('/login');
               }}
               onRetryClick={() => {
-                setOauthEmailDuplicateDetails(null);
+                clearEmailDuplicateDetails();
                 // 계정 설정 페이지에 머무름
               }}
             />
@@ -244,7 +212,7 @@ function OAuthAccountsContent(): React.JSX.Element {
                   병합됩니다.
                 </p>
                 <button
-                  onClick={() => setMergeRequestSent(null)}
+                  onClick={() => clearMergeRequestSent()}
                   className="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium"
                 >
                   닫기
