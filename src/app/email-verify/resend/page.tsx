@@ -13,6 +13,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
+import { Alert } from '@/components/common';
 
 export default function EmailVerifyResendPage(): React.JSX.Element {
   // 폼 입력 관리
@@ -87,41 +88,22 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
 
         {status === 'success' ? (
           <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-green-600 mt-0.5 mr-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <div>
-                  <h3 className="font-medium text-green-800 mb-1">메일 발송 완료</h3>
-                  <p className="text-sm text-green-700">
-                    <strong>{formData.email}</strong>로 인증 메일이 발송되었습니다.
-                  </p>
-                  <p className="text-sm text-green-700 mt-2">
-                    메일함을 확인하시고 인증 링크를 클릭해주세요.
-                  </p>
-                </div>
+            <Alert type="success" title="메일 발송 완료">
+              <p className="text-sm text-green-700">
+                <strong>{formData.email}</strong>로 인증 메일이 발송되었습니다.
+              </p>
+              <p className="text-sm text-green-700 mt-2">
+                메일함을 확인하시고 인증 링크를 클릭해주세요.
+              </p>
+              <div className="mt-3 pt-3 border-t border-green-200">
+                <p className="text-sm text-green-800 font-medium mb-1">안내사항</p>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• 인증 링크는 24시간 동안 유효합니다.</li>
+                  <li>• 메일이 오지 않는다면 스팸함을 확인해주세요.</li>
+                  <li>• 재발송은 1분에 최대 3번까지 가능합니다.</li>
+                </ul>
               </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">💡 안내사항</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 인증 링크는 24시간 동안 유효합니다.</li>
-                <li>• 메일이 오지 않는다면 스팸함을 확인해주세요.</li>
-                <li>• 재발송은 1분에 최대 3번까지 가능합니다.</li>
-              </ul>
-            </div>
+            </Alert>
 
             <button
               onClick={() => router.push('/login')}

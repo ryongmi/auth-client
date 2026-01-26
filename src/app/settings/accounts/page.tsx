@@ -9,6 +9,7 @@ import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
+import { Alert } from '@/components/common';
 import { useOAuthErrorHandling } from '@/hooks/useOAuthErrorHandling';
 import { OAuthAccountProviderType } from '@/types';
 
@@ -179,59 +180,43 @@ function OAuthAccountsContent(): React.JSX.Element {
 
         {/* 계정 병합 요청 발송 알림 (OAUTH_202) */}
         {mergeRequestSent && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="mb-6">
+            <Alert
+              type="info"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
+              }
+              title="계정 병합 요청이 발송되었습니다"
+            >
+              <p className="text-sm text-blue-700 mb-2">
+                해당 {getProviderLabel(mergeRequestSent.provider)} 계정은 다른 사용자에게 연결되어
+                있습니다.
+              </p>
+              <p className="text-sm text-blue-600">
+                계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이
+                병합됩니다.
+              </p>
+              <button
+                onClick={() => clearMergeRequestSent()}
+                className="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                />
-              </svg>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-blue-800 mb-1">
-                  계정 병합 요청이 발송되었습니다
-                </h3>
-                <p className="text-sm text-blue-700 mb-2">
-                  해당{' '}
-                  {mergeRequestSent.provider === OAuthAccountProviderType.GOOGLE
-                    ? 'Google'
-                    : mergeRequestSent.provider === OAuthAccountProviderType.NAVER
-                      ? 'Naver'
-                      : mergeRequestSent.provider}{' '}
-                  계정은 다른 사용자에게 연결되어 있습니다.
-                </p>
-                <p className="text-sm text-blue-600">
-                  계정 소유자에게 병합 확인 이메일이 발송되었습니다. 소유자가 승인하면 계정이
-                  병합됩니다.
-                </p>
-                <button
-                  onClick={() => clearMergeRequestSent()}
-                  className="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium"
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
+                닫기
+              </button>
+            </Alert>
           </div>
         )}
 
         {/* 일반 메시지 표시 */}
         {!oauthEmailDuplicateDetails && message && (
-          <div
-            className={`p-4 mb-6 rounded-lg ${
-              message.type === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-          >
-            {message.text}
+          <div className="mb-6">
+            <Alert type={message.type} message={message.text} icon={null} />
           </div>
         )}
 

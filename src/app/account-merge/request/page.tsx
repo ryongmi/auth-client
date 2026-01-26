@@ -6,6 +6,7 @@ import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
+import { StatusCard, StatusCardIcons, Alert } from '@/components/common';
 
 function AccountMergeRequestContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
@@ -141,30 +142,16 @@ function AccountMergeRequestContent(): React.JSX.Element {
             </div>
 
             {/* 안내 메시지 */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium mb-1">병합 요청 안내</p>
-                  <ul className="list-disc list-inside space-y-1 text-yellow-700">
-                    <li>대상 이메일 계정 소유자에게 확인 이메일이 발송됩니다</li>
-                    <li>소유자가 승인하면 두 계정의 데이터가 병합됩니다</li>
-                    <li>병합 후 현재 계정은 삭제됩니다</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="mb-6">
+              <Alert
+                type="warning"
+                title="병합 요청 안내"
+                items={[
+                  '대상 이메일 계정 소유자에게 확인 이메일이 발송됩니다',
+                  '소유자가 승인하면 두 계정의 데이터가 병합됩니다',
+                  '병합 후 현재 계정은 삭제됩니다',
+                ]}
+              />
             </div>
 
             {/* 버튼 */}
@@ -187,81 +174,51 @@ function AccountMergeRequestContent(): React.JSX.Element {
 
         {/* 성공 상태 */}
         {status === 'success' && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+          <StatusCard
+            type="success"
+            icon={StatusCardIcons.Check}
+            title="요청 완료!"
+            description="계정 병합 요청이 전송되었습니다."
+            actions={[
+              {
+                label: '로그인 페이지로 이동',
+                onClick: () => router.push('/login'),
+              },
+            ]}
+          >
+            <div className="mb-6 text-left">
+              <Alert type="info" message={
+                <>
+                  <strong>{email}</strong> 계정 소유자에게 확인 이메일이 발송되었습니다.
+                  소유자가 승인하면 계정이 병합됩니다.
+                  {requestId && (
+                    <span className="block text-xs text-blue-600 mt-2">요청 ID: {requestId}</span>
+                  )}
+                </>
+              } />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">요청 완료!</h2>
-            <p className="text-gray-600 mb-4">
-              계정 병합 요청이 전송되었습니다.
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-              <p className="text-sm text-blue-800">
-                <strong>{email}</strong> 계정 소유자에게 확인 이메일이 발송되었습니다.
-                소유자가 승인하면 계정이 병합됩니다.
-              </p>
-              {requestId && (
-                <p className="text-xs text-blue-600 mt-2">요청 ID: {requestId}</p>
-              )}
-            </div>
-            <button
-              onClick={() => router.push('/login')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              로그인 페이지로 이동
-            </button>
-          </div>
+          </StatusCard>
         )}
 
         {/* 에러 상태 */}
         {status === 'error' && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h2>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-600">{error}</p>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => window.location.reload()}
-                className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                다시 시도
-              </button>
-              <button
-                onClick={() => router.push('/login')}
-                className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                로그인 페이지로 이동
-              </button>
-            </div>
-          </div>
+          <StatusCard
+            type="error"
+            icon={StatusCardIcons.Close}
+            title="오류 발생"
+            description={error || '알 수 없는 오류가 발생했습니다.'}
+            actions={[
+              {
+                label: '다시 시도',
+                onClick: () => window.location.reload(),
+              },
+              {
+                label: '로그인 페이지로 이동',
+                variant: 'secondary',
+                onClick: () => router.push('/login'),
+              },
+            ]}
+          />
         )}
       </div>
     </div>

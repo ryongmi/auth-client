@@ -23,6 +23,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from "@/components/form";
+import { Alert } from "@/components/common";
 
 function LoginPageContent(): React.JSX.Element {
   // 폼 입력 관리
@@ -205,26 +206,11 @@ function LoginPageContent(): React.JSX.Element {
 
         {/* SSO 알림 */}
         {isSSO && (
-          <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-center">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 0l4-4m6 6l-3 3a2 2 0 01-3 0l-3-3m-3 3a2 2 0 01-3 0l-3-3m3-3l3 3"
-                />
-              </svg>
-              <p className="text-sm text-blue-700 font-medium">
-                연결된 서비스로 자동 이동합니다
-              </p>
-            </div>
-          </div>
+          <Alert
+            type="info"
+            message="연결된 서비스로 자동 이동합니다"
+            centered
+          />
         )}
 
         {/* 로그인 폼 */}
@@ -333,27 +319,15 @@ function LoginPageContent(): React.JSX.Element {
 
             {/* Rate Limit 경고 */}
             {remainingAttempts <= 2 && remainingAttempts > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <svg
-                    className="w-5 h-5 text-yellow-600 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 18.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  <p className="text-sm text-yellow-800">
+              <Alert
+                type="warning"
+                message={
+                  <>
                     <strong>경고:</strong> 남은 로그인 시도 횟수:{" "}
                     {remainingAttempts}회
-                  </p>
-                </div>
-              </div>
+                  </>
+                }
+              />
             )}
 
             {/* 로그인 버튼 */}

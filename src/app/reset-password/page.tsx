@@ -14,7 +14,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
-import { StatusCard, StatusCardIcons } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert } from '@/components/common';
 
 function ResetPasswordPageContent(): React.JSX.Element {
   // 폼 입력 관리
@@ -188,16 +188,15 @@ function ResetPasswordPageContent(): React.JSX.Element {
             />
 
             {/* 비밀번호 요구사항 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800 font-medium mb-2">
-                비밀번호 요구사항:
-              </p>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 최소 8자 이상</li>
-                <li>• 대문자와 소문자 포함</li>
-                <li>• 숫자 포함</li>
-              </ul>
-            </div>
+            <Alert
+              type="info"
+              title="비밀번호 요구사항:"
+              items={[
+                '최소 8자 이상',
+                '대문자와 소문자 포함',
+                '숫자 포함',
+              ]}
+            />
 
             {/* 에러 표시 */}
             {errors.submit && (

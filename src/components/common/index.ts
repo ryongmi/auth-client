@@ -9,3 +9,4 @@ export {
   type StatusCardInfo,
   type StatusType,
 } from './StatusCard';
+export { Alert, type AlertProps, type AlertType } from './Alert';
