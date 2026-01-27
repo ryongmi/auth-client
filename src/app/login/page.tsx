@@ -40,6 +40,7 @@ function LoginPageContent(): React.JSX.Element {
   );
 
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState<number>(AUTH_CONFIG.LOGIN_MAX_ATTEMPTS);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -64,7 +65,7 @@ function LoginPageContent(): React.JSX.Element {
     clearErrorMessage,
   } = useOAuthErrorHandling();
 
-  // SSO 리다이렉트 세션 확인
+  // SSO 리다이렉트 세션 및 내부 리다이렉트 경로 확인
   useEffect(() => {
     // URL 파라미터에서 SSO 세션 정보 확인
     const session = searchParams.get("redirect_session");
@@ -79,6 +80,12 @@ function LoginPageContent(): React.JSX.Element {
 
       setRedirectSession(session);
       setIsSSO(true);
+    }
+
+    // 내부 리다이렉트 경로 확인 (오픈 리다이렉트 방지)
+    const redirect = searchParams.get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+      setRedirectPath(redirect);
     }
 
     // 로그인 시도 횟수 확인
@@ -118,7 +125,14 @@ function LoginPageContent(): React.JSX.Element {
         })
       ).unwrap();
 
-      window.location.href = loginResponse.redirectUrl || "/";
+      // 리다이렉트 우선순위: redirect_session(SSO) > redirect(내부 경로) > 기본
+      if (redirectSession && loginResponse.redirectUrl) {
+        window.location.href = loginResponse.redirectUrl;
+      } else if (redirectPath) {
+        window.location.href = redirectPath;
+      } else {
+        window.location.href = loginResponse.redirectUrl || "/";
+      }
       setLastError(null);
       setRetryCount(0);
     } catch (retryError) {
@@ -169,7 +183,14 @@ function LoginPageContent(): React.JSX.Element {
         })
       ).unwrap();
 
-      window.location.href = loginResponse.redirectUrl || "/";
+      // 리다이렉트 우선순위: redirect_session(SSO) > redirect(내부 경로) > 기본
+      if (redirectSession && loginResponse.redirectUrl) {
+        window.location.href = loginResponse.redirectUrl;
+      } else if (redirectPath) {
+        window.location.href = redirectPath;
+      } else {
+        window.location.href = loginResponse.redirectUrl || "/";
+      }
       setLastError(null);
     } catch (loginError) {
       // 에러는 Redux slice에서 처리되지만, 재시도 가능 여부도 확인
@@ -404,7 +425,13 @@ function LoginPageContent(): React.JSX.Element {
             <p className="text-sm text-gray-500">
               아직 계정이 없으신가요?{" "}
               <Link
-                href={redirectSession ? `/register?redirect_session=${redirectSession}` : "/register"}
+                href={(() => {
+                  const params = new URLSearchParams();
+                  if (redirectSession) params.set("redirect_session", redirectSession);
+                  if (redirectPath) params.set("redirect", redirectPath);
+                  const query = params.toString();
+                  return query ? `/register?${query}` : "/register";
+                })()}
                 className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
               >
                 회원가입

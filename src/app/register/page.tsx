@@ -47,17 +47,24 @@ function RegisterForm(): React.JSX.Element {
   const [isRetrying, setIsRetrying] = useState(false);
   const [lastError, setLastError] = useState<AuthError | null>(null);
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   const router = useRouter();
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
-  // SSO 리다이렉트 세션 확인
+  // SSO 리다이렉트 세션 및 내부 리다이렉트 경로 확인
   useEffect(() => {
     const session = searchParams.get('redirect_session');
     if (session) {
       setRedirectSession(session);
+    }
+
+    // 내부 리다이렉트 경로 확인 (오픈 리다이렉트 방지)
+    const redirect = searchParams.get('redirect');
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      setRedirectPath(redirect);
     }
   }, [searchParams]);
 
@@ -114,8 +121,10 @@ function RegisterForm(): React.JSX.Element {
       if (signupResponse.redirectUrl) {
         window.location.href = signupResponse.redirectUrl;
       } else {
-        // fallback: 로그인 페이지로 이동
-        router.push('/login?registered=true');
+        // fallback: 로그인 페이지로 이동 (redirect 파라미터 보존)
+        const params = new URLSearchParams({ registered: 'true' });
+        if (redirectPath) params.set('redirect', redirectPath);
+        router.push(`/login?${params.toString()}`);
       }
 
       setLastError(null);
@@ -145,8 +154,10 @@ function RegisterForm(): React.JSX.Element {
       if (signupResponse.redirectUrl) {
         window.location.href = signupResponse.redirectUrl;
       } else {
-        // fallback: 로그인 페이지로 이동
-        router.push('/login?registered=true');
+        // fallback: 로그인 페이지로 이동 (redirect 파라미터 보존)
+        const params = new URLSearchParams({ registered: 'true' });
+        if (redirectPath) params.set('redirect', redirectPath);
+        router.push(`/login?${params.toString()}`);
       }
 
       setLastError(null);
@@ -280,7 +291,13 @@ function RegisterForm(): React.JSX.Element {
             <p className="text-sm text-gray-500">
               이미 계정이 있으신가요?{' '}
               <Link
-                href={redirectSession ? `/login?redirect_session=${redirectSession}` : '/login'}
+                href={(() => {
+                  const params = new URLSearchParams();
+                  if (redirectSession) params.set('redirect_session', redirectSession);
+                  if (redirectPath) params.set('redirect', redirectPath);
+                  const query = params.toString();
+                  return query ? `/login?${query}` : '/login';
+                })()}
                 className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
               >
                 로그인
