@@ -14,7 +14,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
-import { StatusCard, StatusCardIcons, Alert } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, FormCard } from '@/components/common';
 
 function ResetPasswordPageContent(): React.JSX.Element {
   // 폼 입력 관리
@@ -128,10 +128,9 @@ function ResetPasswordPageContent(): React.JSX.Element {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-md w-full space-y-8">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
-            <StatusCard
+      <AuthPageLayout variant="form">
+        <FormCard>
+          <StatusCard
               type="success"
               icon={StatusCardIcons.Check}
               title="비밀번호 재설정 완료"
@@ -143,15 +142,13 @@ function ResetPasswordPageContent(): React.JSX.Element {
                 },
               ]}
             />
-          </div>
-        </div>
-      </div>
+        </FormCard>
+      </AuthPageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-md w-full space-y-8">
+    <AuthPageLayout variant="form">
         {/* 헤더 */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
@@ -161,7 +158,7 @@ function ResetPasswordPageContent(): React.JSX.Element {
         </div>
 
         {/* 비밀번호 재설정 폼 */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
+        <FormCard>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 새 비밀번호 */}
             <FormInput
@@ -231,15 +228,14 @@ function ResetPasswordPageContent(): React.JSX.Element {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+        </FormCard>
+    </AuthPageLayout>
   );
 }
 
 export default function ResetPasswordPage(): React.JSX.Element {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<AuthPageFallback variant="form" />}>
       <ResetPasswordPageContent />
     </Suspense>
   );

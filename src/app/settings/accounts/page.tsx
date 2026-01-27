@@ -9,7 +9,7 @@ import { authService } from '@/services/authService';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
-import { Alert } from '@/components/common';
+import { Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
 import { useOAuthErrorHandling } from '@/hooks/useOAuthErrorHandling';
 import { OAuthAccountProviderType } from '@/types';
 
@@ -154,8 +154,7 @@ function OAuthAccountsContent(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4">
+    <AuthPageLayout variant="dashboard">
         <h1 className="text-3xl font-bold mb-2">OAuth 계정 관리</h1>
         <p className="text-gray-600 mb-8">
           연동된 계정을 관리하고 새로운 로그인 방식을 추가할 수 있습니다.
@@ -320,20 +319,13 @@ function OAuthAccountsContent(): React.JSX.Element {
             ← 설정으로 돌아가기
           </button>
         </div>
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }
 
 export default function OAuthAccountsPage(): React.JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageFallback variant="dashboard" />}>
       <OAuthAccountsContent />
     </Suspense>
   );

@@ -6,7 +6,7 @@ import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
-import { StatusCard, StatusCardIcons, Alert } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
 
 function AccountMergeRequestContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
@@ -86,8 +86,7 @@ function AccountMergeRequestContent(): React.JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <AuthPageLayout>
         {/* 로딩 상태 */}
         {status === 'loading' && (
           <div className="text-center">
@@ -220,20 +219,13 @@ function AccountMergeRequestContent(): React.JSX.Element {
             ]}
           />
         )}
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }
 
 export default function AccountMergeRequestPage(): React.JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageFallback />}>
       <AccountMergeRequestContent />
     </Suspense>
   );

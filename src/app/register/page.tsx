@@ -21,6 +21,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
+import { AuthPageLayout, AuthPageFallback, FormCard } from '@/components/common';
 
 function RegisterForm(): React.JSX.Element {
   // 폼 입력 관리
@@ -159,15 +160,14 @@ function RegisterForm(): React.JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <AuthPageLayout variant="form">
         {/* 헤더 - 간소화 */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-6">새 계정 만들기</h1>
         </div>
 
         {/* 회원가입 폼 */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
+        <FormCard>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 */}
             <FormInput
@@ -287,24 +287,14 @@ function RegisterForm(): React.JSX.Element {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+        </FormCard>
+    </AuthPageLayout>
   );
 }
 
 export default function RegisterPage(): React.JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">로딩 중...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageFallback variant="form" />}>
       <RegisterForm />
     </Suspense>
   );

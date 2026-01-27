@@ -10,3 +10,9 @@ export {
   type StatusType,
 } from './StatusCard';
 export { Alert, type AlertProps, type AlertType } from './Alert';
+export {
+  AuthPageLayout,
+  AuthPageFallback,
+  FormCard,
+  type AuthPageVariant,
+} from './AuthPageLayout';

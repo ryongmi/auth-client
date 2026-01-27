@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
-import { StatusCard, StatusCardIcons } from '@/components/common';
+import { StatusCard, StatusCardIcons, AuthPageLayout, AuthPageFallback } from '@/components/common';
 
 function EmailVerifyContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -41,9 +41,8 @@ function EmailVerifyContent(): React.JSX.Element {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        {status === 'loading' && (
+    <AuthPageLayout>
+      {status === 'loading' && (
           <div className="text-center">
             <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">이메일 인증 중...</h2>
@@ -86,20 +85,13 @@ function EmailVerifyContent(): React.JSX.Element {
             ]}
           />
         )}
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }
 
 export default function EmailVerifyPage(): React.JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageFallback />}>
       <EmailVerifyContent />
     </Suspense>
   );

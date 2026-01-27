@@ -2,15 +2,14 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { StatusCard, StatusCardIcons } from '@/components/common';
+import { StatusCard, StatusCardIcons, AuthPageLayout } from '@/components/common';
 
 export default function AccountMergeRejectedPage(): React.JSX.Element {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <StatusCard
+    <AuthPageLayout>
+      <StatusCard
           type="info"
           icon={StatusCardIcons.Blocked}
           title="계정 병합 요청이 거부되었습니다"
@@ -41,7 +40,6 @@ export default function AccountMergeRejectedPage(): React.JSX.Element {
             },
           ]}
         />
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }

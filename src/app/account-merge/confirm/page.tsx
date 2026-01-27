@@ -7,7 +7,7 @@ import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError, AccountMergeResponse } from '@/types';
 import { AccountMergeStatus } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
-import { StatusCard, StatusCardIcons, Alert } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
   const [status, setStatus] = useState<
@@ -161,8 +161,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   const isExpired = mergeRequest ? new Date(mergeRequest.expiresAt) < new Date() : false;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <AuthPageLayout>
         {/* 토큰 검증 중 */}
         {status === 'verifying' && (
           <div className="text-center">
@@ -317,20 +316,13 @@ function AccountMergeConfirmContent(): React.JSX.Element {
             ]}
           />
         )}
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }
 
 export default function AccountMergeConfirmPage(): React.JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageFallback />}>
       <AccountMergeConfirmContent />
     </Suspense>
   );

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { authService } from '@/services/authService';
 import { AuthError } from '@/types';
-import { StatusCard, StatusCardIcons } from '@/components/common';
+import { StatusCard, StatusCardIcons, AuthPageLayout, FormCard } from '@/components/common';
 import { useFormInput } from '@/hooks/useFormInput';
 import { validateEmail } from '@/utils/validators';
 import {
@@ -89,10 +89,9 @@ export default function ForgotPasswordPage(): React.JSX.Element {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
-            <StatusCard
+      <AuthPageLayout variant="form">
+        <FormCard>
+          <StatusCard
               type="success"
               icon={StatusCardIcons.Check}
               title="이메일을 확인하세요"
@@ -114,15 +113,13 @@ export default function ForgotPasswordPage(): React.JSX.Element {
                 },
               ]}
             />
-          </div>
-        </div>
-      </div>
+        </FormCard>
+      </AuthPageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-md w-full space-y-8">
+    <AuthPageLayout variant="form">
         {/* 헤더 */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">비밀번호 재설정</h1>
@@ -130,7 +127,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
         </div>
 
         {/* 비밀번호 찾기 폼 */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 p-8">
+        <FormCard>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 */}
             <FormInput
@@ -176,8 +173,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+        </FormCard>
+    </AuthPageLayout>
   );
 }

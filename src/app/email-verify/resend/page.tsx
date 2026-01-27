@@ -13,7 +13,7 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
-import { Alert } from '@/components/common';
+import { Alert, AuthPageLayout } from '@/components/common';
 
 export default function EmailVerifyResendPage(): React.JSX.Element {
   // 폼 입력 관리
@@ -64,8 +64,7 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <AuthPageLayout>
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
@@ -152,7 +151,6 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </AuthPageLayout>
   );
 }
