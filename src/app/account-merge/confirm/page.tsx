@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
+import { useAuthInitialize } from '@/hooks/useAuthInitialize';
 import type { AuthError, AccountMergeResponse } from '@/types';
 import { AccountMergeStatus } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
@@ -47,47 +47,36 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   }, [token]);
 
   // 2단계: 인증 확인 및 병합 요청 조회
-  useEffect(() => {
-    if (status !== 'loading' || requestId === null) return;
+  useAuthInitialize({
+    enabled: status === 'loading' && requestId !== null,
+    onSuccess: async ({ accessToken }) => {
+      setAccessToken(accessToken);
 
-    const initialize = async (): Promise<void> => {
-      try {
-        // 인증 정보 확인
-        const initData = await authService.initialize();
-        setAccessToken(initData.accessToken);
+      // 병합 요청 조회
+      const request = await accountMergeService.getAccountMerge(requestId!, accessToken);
 
-        // 병합 요청 조회
-        const request = await accountMergeService.getAccountMerge(requestId, initData.accessToken);
-
-        // 만료 여부 확인 후 만료 페이지로 리다이렉트
-        const isRequestExpired = new Date(request.expiresAt) < new Date();
-        if (isRequestExpired) {
-          router.push('/account-merge/expired');
-          return;
-        }
-
-        setMergeRequest(request);
-        setStatus('loaded');
-      } catch (err) {
-        const authError = err as AuthError;
-
-        // 인증 실패 시 로그인 페이지로 리다이렉트
-        if (authError.code === 'HTTP_401' || authError.code === 'UNAUTHORIZED') {
-          setError('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
-          setTimeout(() => {
-            router.push(`/login?redirect=/account-merge/confirm?token=${encodeURIComponent(token || '')}`);
-          }, 2000);
-          setStatus('error');
-          return;
-        }
-
-        setStatus('error');
-        setError(authError.message || '병합 요청을 불러오는데 실패했습니다.');
+      // 만료 여부 확인 후 만료 페이지로 리다이렉트
+      const isRequestExpired = new Date(request.expiresAt) < new Date();
+      if (isRequestExpired) {
+        router.push('/account-merge/expired');
+        return;
       }
-    };
 
-    void initialize();
-  }, [status, requestId, router, token]);
+      setMergeRequest(request);
+      setStatus('loaded');
+    },
+    onUnauthorized: () => {
+      setError('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
+      setStatus('error');
+      setTimeout(() => {
+        router.push(`/login?redirect=/account-merge/confirm?token=${encodeURIComponent(token || '')}`);
+      }, 2000);
+    },
+    onError: (authError) => {
+      setStatus('error');
+      setError(authError.message || '병합 요청을 불러오는데 실패했습니다.');
+    },
+  });
 
   // 병합 승인
   const handleConfirm = async (): Promise<void> => {

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { UserProfile } from '@krgeobuk/user/interfaces';
 
-import { authService } from '@/services/authService';
+import { useAuthInitialize } from '@/hooks/useAuthInitialize';
 import { oauthService, LinkedAccount } from '@/services/oauthService';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
@@ -61,28 +61,20 @@ function OAuthAccountsContent(): React.JSX.Element {
   }, [searchParams, accessToken]);
 
   // 초기화: accessToken 및 사용자 정보 가져오기
-  useEffect(() => {
-    initializeAuth();
-  }, []);
-
-  const initializeAuth = async (): Promise<void> => {
-    try {
-      // 1. authService를 통해 initialize API 호출
-      const initData = await authService.initialize();
-      setAccessToken(initData.accessToken);
-      setUserInfo(initData.user);
-
-      // 2. oauthService를 통해 연동된 계정 목록 조회
-      await fetchLinkedAccounts(initData.accessToken);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
+  useAuthInitialize({
+    onSuccess: async ({ accessToken: token, user }) => {
+      setAccessToken(token);
+      setUserInfo(user);
+      await fetchLinkedAccounts(token);
+    },
+    onError: (authError) => {
       setMessage({
         type: 'error',
-        text: errorMessage,
+        text: authError.message || '오류가 발생했습니다.',
       });
       setLoading(false);
-    }
-  };
+    },
+  });
 
   const fetchLinkedAccounts = async (token: string): Promise<void> => {
     try {

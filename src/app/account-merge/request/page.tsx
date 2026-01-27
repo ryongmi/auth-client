@@ -1,65 +1,52 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError } from '@/types';
+import { useAuthInitialize } from '@/hooks/useAuthInitialize';
 import { getProviderLabel } from '@/utils/providerMapper';
 import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function AccountMergeRequestContent(): React.JSX.Element {
-  const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
-    'loading'
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [requestId, setRequestId] = useState<number | null>(null);
-
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const provider = searchParams.get('provider') || '';
   const email = searchParams.get('email') || '';
   const providerId = searchParams.get('providerId') || '';
+  const hasRequiredParams = !!provider && !!email;
+
+  const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
+    hasRequiredParams ? 'loading' : 'error'
+  );
+  const [error, setError] = useState<string | null>(
+    hasRequiredParams ? null : '필수 파라미터가 누락되었습니다. (provider, email)'
+  );
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<number | null>(null);
 
   // 초기화: 인증 정보 확인
-  useEffect(() => {
-    const initialize = async (): Promise<void> => {
-      // 필수 파라미터 확인
-      if (!provider || !email) {
-        setStatus('error');
-        setError('필수 파라미터가 누락되었습니다. (provider, email)');
-        return;
-      }
-
-      try {
-        // 인증 정보 확인
-        const initData = await authService.initialize();
-        setAccessToken(initData.accessToken);
-        setStatus('ready');
-      } catch (err) {
-        const authError = err as AuthError;
-
-        // 인증 실패 시 로그인 페이지로 리다이렉트
-        if (authError.code === 'HTTP_401' || authError.code === 'UNAUTHORIZED') {
-          setError('로그인이 필요합니다.');
-          setTimeout(() => {
-            const params = new URLSearchParams({ provider, email });
-            if (providerId) params.append('providerId', providerId);
-            router.push(`/login?redirect=/account-merge/request?${params.toString()}`);
-          }, 2000);
-          setStatus('error');
-          return;
-        }
-
-        setStatus('error');
-        setError(authError.message || '인증 정보를 확인하는데 실패했습니다.');
-      }
-    };
-
-    void initialize();
-  }, [provider, email, providerId, router]);
+  useAuthInitialize({
+    enabled: hasRequiredParams,
+    onSuccess: ({ accessToken: token }) => {
+      setAccessToken(token);
+      setStatus('ready');
+    },
+    onUnauthorized: () => {
+      setError('로그인이 필요합니다.');
+      setStatus('error');
+      setTimeout(() => {
+        const params = new URLSearchParams({ provider, email });
+        if (providerId) params.append('providerId', providerId);
+        router.push(`/login?redirect=/account-merge/request?${params.toString()}`);
+      }, 2000);
+    },
+    onError: (authError) => {
+      setStatus('error');
+      setError(authError.message || '인증 정보를 확인하는데 실패했습니다.');
+    },
+  });
 
   // 병합 요청 전송
   const handleSubmit = async (): Promise<void> => {
