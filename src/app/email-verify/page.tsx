@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
-import { StatusCard, StatusCardIcons, AuthPageLayout, AuthPageFallback } from '@/components/common';
+import { StatusCard, StatusCardIcons, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function EmailVerifyContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -42,13 +42,7 @@ function EmailVerifyContent(): React.JSX.Element {
 
   return (
     <AuthPageLayout>
-      {status === 'loading' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">이메일 인증 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+      {status === 'loading' && <LoadingSpinner title="이메일 인증 중..." />}
 
         {status === 'success' && (
           <StatusCard

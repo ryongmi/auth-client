@@ -6,7 +6,7 @@ import { authService } from '@/services/authService';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
-import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function AccountMergeRequestContent(): React.JSX.Element {
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
@@ -88,22 +88,10 @@ function AccountMergeRequestContent(): React.JSX.Element {
   return (
     <AuthPageLayout>
         {/* 로딩 상태 */}
-        {status === 'loading' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">준비 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+        {status === 'loading' && <LoadingSpinner title="준비 중..." />}
 
         {/* 처리 중 상태 */}
-        {status === 'processing' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">요청 전송 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+        {status === 'processing' && <LoadingSpinner title="요청 전송 중..." />}
 
         {/* 준비 완료 상태 - 병합 요청 폼 */}
         {status === 'ready' && (

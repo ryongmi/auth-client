@@ -7,7 +7,7 @@ import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError, AccountMergeResponse } from '@/types';
 import { AccountMergeStatus } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
-import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
+import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
   const [status, setStatus] = useState<
@@ -163,31 +163,13 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   return (
     <AuthPageLayout>
         {/* 토큰 검증 중 */}
-        {status === 'verifying' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">토큰 확인 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+        {status === 'verifying' && <LoadingSpinner title="토큰 확인 중..." />}
 
         {/* 로딩 상태 */}
-        {status === 'loading' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">요청 정보 확인 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+        {status === 'loading' && <LoadingSpinner title="요청 정보 확인 중..." />}
 
         {/* 처리 중 상태 */}
-        {status === 'processing' && (
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">처리 중...</h2>
-            <p className="text-gray-600">잠시만 기다려주세요.</p>
-          </div>
-        )}
+        {status === 'processing' && <LoadingSpinner title="처리 중..." />}
 
         {/* 병합 요청 정보 표시 */}
         {status === 'loaded' && mergeRequest && (

@@ -16,3 +16,4 @@ export {
   FormCard,
   type AuthPageVariant,
 } from './AuthPageLayout';
+export { LoadingSpinner } from './LoadingSpinner';
