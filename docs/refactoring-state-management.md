@@ -1,12 +1,14 @@
-# auth-client 상태관리 리팩토링 계획
+# auth-client 상태관리 리팩토링
 
 ## 개요
 
 Redux Toolkit 기반 상태관리를 **react-query + Zustand + react-hook-form** 조합으로 전환합니다.
 
+> **상태: 완료** (2026-02)
+
 ### 목적
 
-| 현재 | 문제점 | 전환 후 |
+| 기존 | 문제점 | 전환 후 |
 |------|--------|---------|
 | Redux Toolkit (thunk) | 서버 상태 2개를 위해 store/slice/thunk/hooks 전체 구조 유지 | react-query가 서버 상태 자동 관리 |
 | Redux (클라이언트 상태) | loginAttempts/isBlocked만 관리하는데 과도한 보일러플레이트 | Zustand로 최소한의 클라이언트 상태 관리 |
@@ -21,45 +23,51 @@ Redux Toolkit 기반 상태관리를 **react-query + Zustand + react-hook-form**
 
 ---
 
-## Phase 1: 기반 설정
+## Phase 1: 기반 설정 ✅
 
-### 1-1. 패키지 설치
+> 커밋: `ac1ab8e`
+
+### 1-1. 패키지 변경
+
+`package.json` 의존성 직접 수정 후 `npm install`:
 
 ```bash
-npm install @tanstack/react-query zustand react-hook-form
-npm uninstall @reduxjs/toolkit react-redux
+# 제거
+@reduxjs/toolkit
+react-redux
+
+# 추가
+@tanstack/react-query
+zustand
+react-hook-form
 ```
 
 ### 1-2. Provider 교체
 
 **파일**: `src/components/providers.tsx`
 
+SSR 안전성을 위해 `useState`로 QueryClient 생성:
+
 ```typescript
-// Before
-import { Provider } from 'react-redux';
-import { store } from '@/store';
+'use client';
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <Provider store={store}>{children}</Provider>;
-}
-
-// After
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
+export function Providers({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: 0,
+      },
     },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
+  }));
 
-export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
@@ -68,13 +76,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 ```
 
+> **계획과 차이**: `const queryClient = new QueryClient(...)` 대신 `useState(() => new QueryClient(...))` 사용 — SSR 환경에서 클라이언트 인스턴스 공유 방지
+
 ---
 
-## Phase 2: Zustand 스토어 생성
+## Phase 2: Zustand 스토어 생성 ✅
 
-### 2-1. 파일 생성: `src/store/authStore.ts`
+> 커밋: `369365a`
 
-Redux authSlice에서 **클라이언트 전용 상태만** 이관합니다.
+### 2-1. 생성: `src/store/authStore.ts`
+
+Redux authSlice에서 클라이언트 전용 상태만 이관:
 
 ```typescript
 import { create } from 'zustand';
@@ -91,7 +103,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loginAttempts: 0,
   isBlocked: false,
 
-  incrementLoginAttempts: () => {
+  incrementLoginAttempts: (): void => {
     const attempts = get().loginAttempts + 1;
     set({
       loginAttempts: attempts,
@@ -99,13 +111,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
   },
 
-  resetLoginAttempts: () => {
+  resetLoginAttempts: (): void => {
     set({ loginAttempts: 0, isBlocked: false });
   },
 }));
 ```
 
-### 2-2. 삭제 대상
+### 2-2. 삭제된 파일
 
 - `src/store/index.ts`
 - `src/store/hooks.ts`
@@ -113,158 +125,26 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
 ---
 
-## Phase 3: react-query 전환
+## Phase 3: react-query 전환 ✅
+
+> 커밋: `abd07e7`
 
 ### 3-1. Mutation 훅 (`src/hooks/mutations/`)
+
+10개 mutation 훅 생성. 계획 대비 `any` 타입 없이 구체적인 TypeScript 제네릭 사용:
 
 #### `useLogin.ts`
 
 ```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import { convertToAuthError } from '@/lib/errorConverter';
-import { useAuthStore } from '@/store/authStore';
-import type { LoginRequest, AuthError } from '@/types';
-
-interface LoginParams {
-  loginData: LoginRequest;
-  redirectSession?: string;
-}
-
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useLogin() {
   const { incrementLoginAttempts, resetLoginAttempts } = useAuthStore();
 
-  return useMutation<any, AuthError, LoginParams>({
+  return useMutation<LoginResponse, AuthError, LoginParams>({
     mutationFn: ({ loginData, redirectSession }) =>
       authService.login(loginData, redirectSession),
-    onSuccess: () => {
-      resetLoginAttempts();
-    },
-    onError: (error) => {
-      incrementLoginAttempts();
-    },
-    meta: { convertError: true },
-  });
-}
-```
-
-#### `useSignup.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import type { ExtendedSignupRequest, AuthError } from '@/types';
-
-interface SignupParams {
-  signupData: ExtendedSignupRequest;
-  redirectSession?: string;
-}
-
-export function useSignup() {
-  return useMutation<any, AuthError, SignupParams>({
-    mutationFn: ({ signupData, redirectSession }) =>
-      authService.signup(signupData, redirectSession),
-  });
-}
-```
-
-#### `useForgotPassword.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import type { ForgotPasswordFormData, AuthError } from '@/types';
-
-export function useForgotPassword() {
-  return useMutation<{ message: string }, AuthError, ForgotPasswordFormData>({
-    mutationFn: (data) => authService.forgotPassword(data),
-  });
-}
-```
-
-#### `useResetPassword.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import type { ResetPasswordFormData, AuthError } from '@/types';
-
-export function useResetPassword() {
-  return useMutation<{ message: string }, AuthError, ResetPasswordFormData>({
-    mutationFn: (data) => authService.resetPassword(data),
-  });
-}
-```
-
-#### `useVerifyEmail.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import type { AuthError } from '@/types';
-
-export function useVerifyEmail() {
-  return useMutation<{ message: string }, AuthError, string>({
-    mutationFn: (token) => authService.verifyEmail(token),
-  });
-}
-```
-
-#### `useResendVerification.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-import type { AuthError } from '@/types';
-
-export function useResendVerification() {
-  return useMutation<{ message: string }, AuthError, string>({
-    mutationFn: (email) => authService.requestEmailVerification(email),
-  });
-}
-```
-
-#### `useInitiateMerge.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { accountMergeService } from '@/services/accountMergeService';
-import type { AuthError } from '@/types';
-
-export function useInitiateMerge() {
-  return useMutation<any, AuthError, { dto: any; accessToken: string }>({
-    mutationFn: ({ dto, accessToken }) =>
-      accountMergeService.initiateAccountMerge(dto, accessToken),
-  });
-}
-```
-
-#### `useConfirmMerge.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { accountMergeService } from '@/services/accountMergeService';
-import type { AuthError } from '@/types';
-
-export function useConfirmMerge() {
-  return useMutation<any, AuthError, { requestId: string; accessToken: string }>({
-    mutationFn: ({ requestId, accessToken }) =>
-      accountMergeService.confirmAccountMerge(requestId, accessToken),
-  });
-}
-```
-
-#### `useRejectMerge.ts`
-
-```typescript
-import { useMutation } from '@tanstack/react-query';
-import { accountMergeService } from '@/services/accountMergeService';
-import type { AuthError } from '@/types';
-
-export function useRejectMerge() {
-  return useMutation<any, AuthError, { requestId: string; accessToken: string }>({
-    mutationFn: ({ requestId, accessToken }) =>
-      accountMergeService.rejectAccountMerge(requestId, accessToken),
+    onSuccess: () => resetLoginAttempts(),
+    onError: () => incrementLoginAttempts(),
   });
 }
 ```
@@ -272,352 +152,301 @@ export function useRejectMerge() {
 #### `useUnlinkAccount.ts`
 
 ```typescript
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { oauthService } from '@/services/oauthService';
-import type { AuthError } from '@/types';
-
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useUnlinkAccount() {
   const queryClient = useQueryClient();
 
-  return useMutation<any, AuthError, { provider: string; accessToken: string }>({
+  return useMutation<{ success: boolean; message: string }, AuthError, UnlinkAccountParams>({
     mutationFn: ({ provider, accessToken }) =>
       oauthService.unlinkAccount(provider, accessToken),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['linkedAccounts'] });
+      void queryClient.invalidateQueries({ queryKey: ['linkedAccounts'] });
     },
   });
 }
 ```
+
+#### 나머지 mutation 훅
+
+| 파일 | TData | TVariables |
+|------|-------|------------|
+| `useSignup.ts` | `SignupResponse` | `SignupParams` |
+| `useForgotPassword.ts` | `{ message: string }` | `ForgotPasswordFormData` |
+| `useResetPassword.ts` | `{ message: string }` | `ResetPasswordParams` |
+| `useVerifyEmail.ts` | `{ message: string }` | `string` (token) |
+| `useResendVerification.ts` | `{ message: string }` | `string` (email) |
+| `useInitiateMerge.ts` | `AccountMergeInitiateResponse` | `InitiateMergeParams` |
+| `useConfirmMerge.ts` | `void` | `ConfirmMergeParams` |
+| `useRejectMerge.ts` | `void` | `RejectMergeParams` |
 
 ### 3-2. Query 훅 (`src/hooks/queries/`)
 
 #### `useAuthInitialize.ts`
 
 ```typescript
-import { useQuery } from '@tanstack/react-query';
-import { authService } from '@/services/authService';
-
-interface UseAuthInitializeOptions {
-  enabled?: boolean;
-  onUnauthorized?: () => void;
-}
-
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useAuthInitialize(options: UseAuthInitializeOptions = {}) {
-  const { enabled = true, onUnauthorized } = options;
+  const { enabled = true } = options;
 
-  return useQuery({
+  return useQuery<AuthInitData, AuthError>({
     queryKey: ['authInitialize'],
-    queryFn: async () => {
-      try {
-        return await authService.initialize();
-      } catch (error: any) {
-        if (error?.response?.status === 401) {
-          onUnauthorized?.();
-          return null;
-        }
-        throw error;
-      }
-    },
+    queryFn: () => authService.initialize(),
     enabled,
-    retry: false,
+    retry: (failureCount, error) => {
+      if (isUnauthorized(error)) return false;
+      return failureCount < 1;
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
 ```
 
-#### `useVerifyMergeToken.ts`
+> **계획과 차이**: `onUnauthorized` 콜백 제거 — 에러 상태를 컴포넌트에서 직접 처리하는 방식으로 단순화
 
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { accountMergeService } from '@/services/accountMergeService';
+#### `useVerifyMergeToken.ts`, `useLinkedAccounts.ts`
 
-export function useVerifyMergeToken(token: string | null) {
-  return useQuery({
-    queryKey: ['verifyMergeToken', token],
-    queryFn: () => accountMergeService.verifyToken(token!),
-    enabled: !!token,
-    retry: false,
-  });
-}
-```
+`AuthError` 제네릭 명시 및 `enabled` 조건 활용.
 
-#### `useLinkedAccounts.ts`
-
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { oauthService } from '@/services/oauthService';
-
-export function useLinkedAccounts(accessToken: string | null) {
-  return useQuery({
-    queryKey: ['linkedAccounts'],
-    queryFn: () => oauthService.getLinkedAccounts(accessToken!),
-    enabled: !!accessToken,
-  });
-}
-```
-
-### 3-3. Mutation이 대체하는 상태
-
-각 mutation이 자체적으로 제공하는 상태로 기존 수동 관리 상태를 대체합니다:
+### 3-3. 상태 대체 매핑
 
 | 기존 수동 관리 | react-query 대체 |
 |---------------|-----------------|
 | `useState(isLoading)` | `mutation.isPending` |
 | `useState(error)` / Redux `error` | `mutation.error` |
 | `useState(isRetrying)` | `mutation.isPending` (재호출 시) |
-| `useState(retryCount)` | 제거 (mutation 자동 관리) |
+| `useState(retryCount)` | 제거 |
 | `useState(lastError)` | `mutation.error` |
 | `useState(isSuccess)` | `mutation.isSuccess` |
 | `useState(data)` | `mutation.data` |
 
+### 3-4. 삭제된 파일
+
+- `src/hooks/useAuthInitialize.ts` (쿼리 훅으로 대체)
+
 ---
 
-## Phase 4: react-hook-form 전환
+## Phase 4: react-hook-form 전환 ✅
+
+> 커밋: `bc60d0e`
 
 ### 4-1. FormInput 컴포넌트 수정
 
 **파일**: `src/components/form/FormInput.tsx`
 
-react-hook-form의 `register` 반환값을 직접 전달받도록 수정합니다.
+`UseFormRegisterReturn` 타입으로 `registration` prop 수용:
 
 ```typescript
-// Before
-interface FormInputProps {
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  error?: string;
-  // ...
-}
+import type { UseFormRegisterReturn } from 'react-hook-form';
 
-// After
 interface FormInputProps {
-  error?: string;         // FieldError.message를 전달
-  registration?: object;  // register() 반환값 spread
-  // label, type, placeholder, disabled, icon 등 유지
+  label: string;
+  type?: string;
+  placeholder?: string;
+  error?: string;
+  icon?: React.ReactNode;
+  labelSuffix?: React.ReactNode;
+  registration?: UseFormRegisterReturn;
+  disabled?: boolean;
 }
 
 // 사용 예시
 <FormInput
   label="이메일"
   type="email"
-  placeholder="이메일을 입력하세요"
+  registration={register('email', {
+    validate: (value) => {
+      const result = validateEmail(value);
+      return result.isValid || result.error || true;
+    },
+  })}
   error={errors.email?.message}
   icon={FormInputIcons.Email}
-  registration={register('email', {
-    required: ERROR_MESSAGES.EMAIL_REQUIRED,
-    validate: (v) => validateEmail(v) || true,
-  })}
 />
 ```
 
-### 4-2. 폼별 전환 상세
+> **계획과 차이**: `validate`에서 `validators.ts` 함수가 `{ isValid, error }` 객체를 반환하므로 `result.isValid || result.error || true` 패턴 사용
 
-#### login/page.tsx
-
-```typescript
-// Before
-const { values, errors, handleChange, setError, clearAllErrors } = useFormInput(
-  { email: '', password: '' },
-);
-
-// After
-const { register, handleSubmit, formState: { errors }, setError } = useForm<LoginFormData>({
-  defaultValues: { email: '', password: '' },
-});
-
-const loginMutation = useLogin();
-const { isBlocked, loginAttempts } = useAuthStore();
-
-const onSubmit = handleSubmit((data) => {
-  loginMutation.mutate(
-    { loginData: data, redirectSession },
-    {
-      onSuccess: (response) => {
-        // 리다이렉트 처리
-      },
-    },
-  );
-});
-```
-
-#### register/page.tsx
-
-```typescript
-const { register, handleSubmit, formState: { errors }, watch } = useForm<RegisterFormData>({
-  defaultValues: {
-    email: '', password: '', confirmPassword: '',
-    name: '', nickname: '', agreedToTerms: false,
-  },
-});
-
-const signupMutation = useSignup();
-const password = watch('password');
-
-// confirmPassword 검증
-register('confirmPassword', {
-  validate: (v) => validatePasswordConfirm(password, v) || true,
-});
-```
-
-#### forgot-password/page.tsx
-
-```typescript
-const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>({
-  defaultValues: { email: '' },
-});
-
-const forgotMutation = useForgotPassword();
-
-const onSubmit = handleSubmit((data) => {
-  forgotMutation.mutate(data);
-});
-```
-
-#### reset-password/page.tsx
-
-```typescript
-const { register, handleSubmit, formState: { errors }, watch } = useForm<ResetPasswordFormData>({
-  defaultValues: { password: '', confirmPassword: '' },
-});
-
-const resetMutation = useResetPassword();
-```
-
-#### email-verify/resend/page.tsx
-
-```typescript
-const { register, handleSubmit, formState: { errors } } = useForm<{ email: string }>({
-  defaultValues: { email: '' },
-});
-
-const resendMutation = useResendVerification();
-```
-
-### 4-3. 검증 규칙 매핑
-
-기존 `validators.ts` 함수를 react-hook-form `validate` 옵션으로 연결합니다. validators.ts 자체는 수정하지 않습니다.
-
-```typescript
-// 패턴: validator가 에러 메시지를 반환하면 에러, undefined면 통과
-register('email', {
-  required: ERROR_MESSAGES.EMAIL_REQUIRED,
-  validate: (value) => {
-    const error = validateEmail(value);
-    return error || true; // 에러 메시지 또는 true(통과)
-  },
-});
-
-register('password', {
-  required: ERROR_MESSAGES.PASSWORD_REQUIRED,
-  validate: (value) => {
-    const error = validatePassword(value);
-    return error || true;
-  },
-});
-
-register('name', {
-  required: ERROR_MESSAGES.NAME_REQUIRED,
-  validate: (value) => {
-    const error = validateName(value);
-    return error || true;
-  },
-});
-```
-
-### 4-4. 삭제 대상
+### 4-2. 삭제된 파일
 
 - `src/hooks/useFormInput.ts`
 
 ---
 
-## Phase 5: 페이지 컴포넌트 리팩토링
+## Phase 5: 페이지 컴포넌트 리팩토링 ✅
 
-### 전환 순서 (의존도 순)
+> 커밋: `662e74f`
 
-1. **login/page.tsx** - Redux 사용 가장 많음, 기준 패턴 확립
-2. **register/page.tsx** - 로그인과 유사한 패턴
-3. **forgot-password/page.tsx** - 단순 폼
-4. **reset-password/page.tsx** - 단순 폼
-5. **email-verify/resend/page.tsx** - 단순 폼
-6. **email-verify/page.tsx** - mutation만 사용 (폼 없음)
-7. **account-merge/request/page.tsx** - query + mutation
-8. **account-merge/confirm/page.tsx** - query + mutation
-9. **settings/accounts/page.tsx** - query + mutation
+### 전환된 페이지 (9개)
 
-### 각 페이지 변경 패턴
+| 페이지 | 사용 훅 |
+|--------|---------|
+| `login/page.tsx` | `useForm` + `useLogin` + `useAuthStore` |
+| `register/page.tsx` | `useForm` + `useSignup` |
+| `forgot-password/page.tsx` | `useForm` + `useForgotPassword` |
+| `reset-password/page.tsx` | `useForm` + `useResetPassword` |
+| `email-verify/page.tsx` | `useVerifyEmail` |
+| `email-verify/resend/page.tsx` | `useForm` + `useResendVerification` |
+| `account-merge/request/page.tsx` | `useForm` + `useAuthInitialize` + `useInitiateMerge` |
+| `account-merge/confirm/page.tsx` | `useVerifyMergeToken` + `useAuthInitialize` + `useConfirmMerge` + `useRejectMerge` |
+| `settings/accounts/page.tsx` | `useAuthInitialize` + `useLinkedAccounts` + `useUnlinkAccount` |
+
+### 공통 전환 패턴
 
 ```typescript
-// Before (공통 패턴)
+// Before
 const dispatch = useAppDispatch();
 const { isLoading, error } = useAppSelector((state) => state.auth);
-const { values, errors, handleChange, setError } = useFormInput({ ... });
-const [isRetrying, setIsRetrying] = useState(false);
-const [retryCount, setRetryCount] = useState(0);
-const [lastError, setLastError] = useState<AuthError | null>(null);
+const { values, errors, handleChange } = useFormInput({ ... });
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  // 수동 검증
-  // dispatch(thunk) 또는 service 직접 호출
-  // try-catch로 에러 처리
-  // 수동 상태 업데이트
-};
-
-// After (공통 패턴)
+// After
 const { register, handleSubmit, formState: { errors } } = useForm({ ... });
 const mutation = useSomeMutation();
 
-const onSubmit = handleSubmit((data) => {
+const onSubmit = (data: FormData): void => {
   mutation.mutate(data, {
     onSuccess: (response) => { /* 리다이렉트 등 */ },
+    onError: (error) => { setSubmitError(error.message); },
   });
-});
-
-// 템플릿에서:
-// mutation.isPending → 로딩 상태
-// mutation.error → 에러 표시
-// mutation.isSuccess → 성공 상태
+};
 ```
 
 ---
 
-## Phase 6: 정리
+## Phase 6: 빌드 오류 수정 ✅
 
-### 삭제 파일
+> 커밋: `d993663` (shared-lib), `108ba12` (auth-client)
+
+### 문제
+
+`@krgeobuk/shared/oauth` barrel export가 DTO/validation을 통해 `@nestjs/swagger` → `@nestjs/core` → `@nestjs/websockets` 의존 체인을 유발, Next.js 클라이언트 번들에서 빌드 실패.
+
+### 해결 방법
+
+**shared-lib** `packages/shared/package.json`에 enum 전용 서브 엔트리포인트 추가:
+
+```json
+{
+  "exports": {
+    "./oauth/enum": {
+      "import": "./dist/oauth/enums/index.js",
+      "require": "./dist/oauth/enums/index.js",
+      "types": "./dist/oauth/enums/index.d.ts"
+    },
+    "./account-merge/enum": {
+      "import": "./dist/account-merge/enums/index.js",
+      "require": "./dist/account-merge/enums/index.js",
+      "types": "./dist/account-merge/enums/index.d.ts"
+    }
+  }
+}
+```
+
+**auth-client** import 경로 변경 (5개 파일):
+
+```typescript
+// Before (NestJS 의존 체인 유발)
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { AccountMergeStatus } from '@krgeobuk/shared/account-merge';
+
+// After (enum만 import)
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
+import { AccountMergeStatus } from '@krgeobuk/shared/account-merge/enum';
+```
+
+**변경된 파일**: `types/index.ts`, `utils/validators.ts`, `utils/oauthErrorMapper.ts`, `utils/providerMapper.ts`, `services/oauthService.ts`
+
+---
+
+## 추가 수정 ✅
+
+### Lint 수정
+
+> 커밋: `b3d7cad`
+
+- mutation/query 훅 함수: `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type` 주석 추가
+- `authStore.ts`: 함수 반환 타입 `: void` 명시
+- `account-merge/confirm/page.tsx`: `getStatusDisplay` 반환 타입 `{ text: string; color: string }` 명시
+- `login/page.tsx`, `register/page.tsx`: IIFE 반환 타입 `: string` 명시
+- `email-verify/page.tsx`: 미정의 `react-hooks/exhaustive-deps` eslint-disable 주석 제거
+
+### Next.js 15 viewport 경고 수정
+
+> 커밋: `855b3e6`
+
+**파일**: `src/app/layout.tsx`
+
+```typescript
+// Before: metadata에 viewport, themeColor 포함 (Next.js 15 경고)
+export const metadata: Metadata = {
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: [...],
+};
+
+// After: 별도 viewport export로 분리
+import type { Metadata, Viewport } from "next";
+
+export const metadata: Metadata = {
+  title: "KRGeobuk Auth",
+  description: "KRGeobuk 통합 인증 서비스",
+  robots: "noindex, nofollow",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f2937" },
+  ],
+};
+```
+
+---
+
+## 최종 파일 구조
+
+### 삭제된 파일
 
 | 파일 | 이유 |
 |------|------|
-| `src/store/index.ts` | Redux store 설정 → Zustand로 대체 |
-| `src/store/hooks.ts` | useAppDispatch/useAppSelector → 불필요 |
-| `src/store/slices/authSlice.ts` | authSlice → react-query + Zustand로 분리 |
-| `src/hooks/useFormInput.ts` | → react-hook-form으로 대체 |
+| `src/store/index.ts` | Redux store → Zustand로 대체 |
+| `src/store/hooks.ts` | useAppDispatch/useAppSelector 불필요 |
+| `src/store/slices/authSlice.ts` | react-query + Zustand로 분리 |
+| `src/hooks/useFormInput.ts` | react-hook-form으로 대체 |
+| `src/hooks/useAuthInitialize.ts` | useAuthInitialize query 훅으로 대체 |
 
-### 생성 파일
+### 생성된 파일
 
 | 파일 | 역할 |
 |------|------|
-| `src/store/authStore.ts` | Zustand 클라이언트 상태 (loginAttempts) |
-| `src/hooks/mutations/useLogin.ts` | 로그인 mutation |
-| `src/hooks/mutations/useSignup.ts` | 회원가입 mutation |
-| `src/hooks/mutations/useForgotPassword.ts` | 비밀번호 찾기 mutation |
-| `src/hooks/mutations/useResetPassword.ts` | 비밀번호 재설정 mutation |
-| `src/hooks/mutations/useVerifyEmail.ts` | 이메일 인증 mutation |
-| `src/hooks/mutations/useResendVerification.ts` | 인증 재전송 mutation |
-| `src/hooks/mutations/useInitiateMerge.ts` | 계정 병합 요청 mutation |
-| `src/hooks/mutations/useConfirmMerge.ts` | 계정 병합 승인 mutation |
-| `src/hooks/mutations/useRejectMerge.ts` | 계정 병합 거절 mutation |
-| `src/hooks/mutations/useUnlinkAccount.ts` | OAuth 연결 해제 mutation |
-| `src/hooks/queries/useAuthInitialize.ts` | 인증 초기화 query |
-| `src/hooks/queries/useVerifyMergeToken.ts` | 병합 토큰 검증 query |
-| `src/hooks/queries/useLinkedAccounts.ts` | 연결 계정 목록 query |
+| `src/store/authStore.ts` | Zustand 클라이언트 상태 (loginAttempts, isBlocked) |
+| `src/hooks/mutations/useLogin.ts` | 로그인 |
+| `src/hooks/mutations/useSignup.ts` | 회원가입 |
+| `src/hooks/mutations/useForgotPassword.ts` | 비밀번호 찾기 |
+| `src/hooks/mutations/useResetPassword.ts` | 비밀번호 재설정 |
+| `src/hooks/mutations/useVerifyEmail.ts` | 이메일 인증 |
+| `src/hooks/mutations/useResendVerification.ts` | 인증 재전송 |
+| `src/hooks/mutations/useInitiateMerge.ts` | 계정 병합 요청 |
+| `src/hooks/mutations/useConfirmMerge.ts` | 계정 병합 승인 |
+| `src/hooks/mutations/useRejectMerge.ts` | 계정 병합 거절 |
+| `src/hooks/mutations/useUnlinkAccount.ts` | OAuth 연결 해제 |
+| `src/hooks/queries/useAuthInitialize.ts` | 인증 초기화 |
+| `src/hooks/queries/useVerifyMergeToken.ts` | 병합 토큰 검증 |
+| `src/hooks/queries/useLinkedAccounts.ts` | 연결 계정 목록 |
 
-### 수정 파일
+### 주요 수정 파일
 
 | 파일 | 변경 내용 |
 |------|-----------|
-| `src/components/providers.tsx` | Redux Provider → QueryClientProvider |
-| `src/components/form/FormInput.tsx` | registration prop 추가 |
+| `package.json` | 의존성 변경 |
+| `src/components/providers.tsx` | Redux Provider → QueryClientProvider (useState 패턴) |
+| `src/components/form/FormInput.tsx` | `UseFormRegisterReturn` registration prop 추가 |
+| `src/app/layout.tsx` | viewport/themeColor를 Viewport export로 분리 |
+| `src/types/index.ts` | `@krgeobuk/shared/account-merge/enum` import |
+| `src/utils/validators.ts` | `@krgeobuk/shared/oauth/enum` import |
+| `src/utils/oauthErrorMapper.ts` | `@krgeobuk/shared/oauth/enum` import |
+| `src/utils/providerMapper.ts` | `@krgeobuk/shared/oauth/enum` import |
+| `src/services/oauthService.ts` | `@krgeobuk/shared/oauth/enum` import |
 | `src/app/login/page.tsx` | useForm + useLogin + useAuthStore |
 | `src/app/register/page.tsx` | useForm + useSignup |
 | `src/app/forgot-password/page.tsx` | useForm + useForgotPassword |
@@ -625,22 +454,35 @@ const onSubmit = handleSubmit((data) => {
 | `src/app/email-verify/page.tsx` | useVerifyEmail |
 | `src/app/email-verify/resend/page.tsx` | useForm + useResendVerification |
 | `src/app/account-merge/request/page.tsx` | useAuthInitialize + useInitiateMerge |
-| `src/app/account-merge/confirm/page.tsx` | useVerifyMergeToken + useAuthInitialize + useConfirmMerge + useRejectMerge |
+| `src/app/account-merge/confirm/page.tsx` | useVerifyMergeToken + useConfirmMerge + useRejectMerge |
 | `src/app/settings/accounts/page.tsx` | useAuthInitialize + useLinkedAccounts + useUnlinkAccount |
-| `package.json` | 의존성 변경 |
 
-### 유지 파일 (변경 없음)
+### 유지된 파일 (변경 없음)
 
-- `src/services/*` - 서비스 레이어 그대로 유지
-- `src/utils/validators.ts` - 검증 함수 그대로 활용
-- `src/utils/oauthErrorMapper.ts` - OAuth 에러 매핑 유지
-- `src/utils/providerMapper.ts` - 프로바이더 매핑 유지
-- `src/config/constants.ts` - 상수 유지
-- `src/lib/errorConverter.ts` - 에러 변환 유지
-- `src/lib/httpClient.ts` - HTTP 클라이언트 유지
-- `src/hooks/useOAuthErrorHandling.ts` - OAuth 에러 처리 유지
-- `src/components/common/*` - 공통 컴포넌트 유지
-- `src/components/form/FormError.tsx` - 에러 표시 유지
-- `src/components/form/SubmitButton.tsx` - 버튼 유지
-- `src/components/OAuthEmailDuplicateError.tsx` - OAuth 에러 컴포넌트 유지
-- `src/types/index.ts` - 타입 정의 유지
+- `src/services/*` — 서비스 레이어
+- `src/utils/validators.ts` — 검증 함수 (import 경로만 변경)
+- `src/config/constants.ts` — 상수
+- `src/lib/errorConverter.ts` — 에러 변환
+- `src/lib/httpClient.ts` — HTTP 클라이언트
+- `src/hooks/useOAuthErrorHandling.ts` — OAuth 에러 처리
+- `src/components/common/*` — 공통 컴포넌트
+- `src/components/form/FormError.tsx` — 에러 표시
+- `src/components/form/SubmitButton.tsx` — 제출 버튼
+- `src/components/OAuthEmailDuplicateError.tsx` — OAuth 에러 컴포넌트
+
+---
+
+## 커밋 이력
+
+| 커밋 | 내용 |
+|------|------|
+| `ac1ab8e` | Phase 1 — 패키지 변경 + QueryClientProvider |
+| `369365a` | Phase 2 — Redux store → Zustand |
+| `abd07e7` | Phase 3 — react-query mutation/query 훅 생성 |
+| `bc60d0e` | Phase 4 — FormInput react-hook-form 호환 수정 |
+| `662e74f` | Phase 5 — 전체 페이지 컴포넌트 전환 |
+| `d993663` | shared-lib — oauth/enum, account-merge/enum 서브 엔트리포인트 추가 |
+| `108ba12` | auth-client — enum 전용 import 경로로 변경 |
+| `1a0a49e` | account-merge/request 빌드 에러 수정 + package-lock 갱신 |
+| `b3d7cad` | lint 에러 수정 |
+| `855b3e6` | Next.js 15 viewport export 분리 |
