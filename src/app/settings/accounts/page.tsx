@@ -2,11 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-import type { UserProfile } from '@krgeobuk/user/interfaces';
-
-import { useAuthInitialize } from '@/hooks/useAuthInitialize';
-import { oauthService, LinkedAccount } from '@/services/oauthService';
+import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
+import { useLinkedAccounts } from '@/hooks/queries/useLinkedAccounts';
+import { useUnlinkAccount } from '@/hooks/mutations/useUnlinkAccount';
+import { oauthService } from '@/services/oauthService';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
 import { Alert, AuthPageLayout, AuthPageFallback } from '@/components/common';
@@ -16,11 +15,7 @@ import { OAuthAccountProviderType } from '@/types';
 function OAuthAccountsContent(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [_userInfo, setUserInfo] = useState<UserProfile | null>(null);
 
   // OAuth 에러 처리 훅
   const {
@@ -31,6 +26,17 @@ function OAuthAccountsContent(): React.JSX.Element {
     clearMergeRequestSent,
     clearErrorMessage,
   } = useOAuthErrorHandling();
+
+  // 인증 초기화
+  const authQuery = useAuthInitialize();
+  const accessToken = authQuery.data?.accessToken || null;
+
+  // 연동 계정 목록 조회
+  const linkedAccountsQuery = useLinkedAccounts(accessToken);
+  const linkedAccounts = linkedAccountsQuery.data || [];
+
+  // 연동 해제 mutation
+  const unlinkMutation = useUnlinkAccount();
 
   // OAuth 에러 메시지를 message 상태로 동기화
   useEffect(() => {
@@ -45,67 +51,25 @@ function OAuthAccountsContent(): React.JSX.Element {
     const linked = searchParams.get('linked');
     const provider = searchParams.get('provider');
 
-    // 연동 성공 메시지
     if (linked === 'true' && provider && accessToken) {
       setMessage({
         type: 'success',
         text: `${provider === OAuthAccountProviderType.GOOGLE ? 'Google' : 'Naver'} 계정이 성공적으로 연동되었습니다.`,
       });
 
-      // URL 파라미터 제거
       router.replace('/settings/accounts');
-
-      // 계정 목록 새로고침
-      fetchLinkedAccounts(accessToken);
     }
-  }, [searchParams, accessToken]);
-
-  // 초기화: accessToken 및 사용자 정보 가져오기
-  useAuthInitialize({
-    onSuccess: async ({ accessToken: token, user }) => {
-      setAccessToken(token);
-      setUserInfo(user);
-      await fetchLinkedAccounts(token);
-    },
-    onError: (authError) => {
-      setMessage({
-        type: 'error',
-        text: authError.message || '오류가 발생했습니다.',
-      });
-      setLoading(false);
-    },
-  });
-
-  const fetchLinkedAccounts = async (token: string): Promise<void> => {
-    try {
-      // oauthService를 통해 연동된 계정 목록 조회
-      const data = await oauthService.getLinkedAccounts(token);
-      setLinkedAccounts(data);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
-      setMessage({
-        type: 'error',
-        text: errorMessage,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchParams, accessToken, router]);
 
   const handleLinkAccount = (
     provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER
   ): void => {
-    // oauthService를 통해 연동 URL 생성
-    const linkUrl = oauthService.getLinkAccountUrl(provider);
-    window.location.href = linkUrl;
+    window.location.href = oauthService.getLinkAccountUrl(provider);
   };
 
-  const handleUnlinkAccount = async (provider: string): Promise<void> => {
+  const handleUnlinkAccount = (provider: string): void => {
     if (!accessToken) {
-      setMessage({
-        type: 'error',
-        text: '인증 정보가 없습니다. 페이지를 새로고침해주세요.',
-      });
+      setMessage({ type: 'error', text: '인증 정보가 없습니다. 페이지를 새로고침해주세요.' });
       return;
     }
 
@@ -113,29 +77,27 @@ function OAuthAccountsContent(): React.JSX.Element {
       return;
     }
 
-    try {
-      // oauthService를 통해 연동 해제
-      const result = await oauthService.unlinkAccount(provider, accessToken);
-
-      setMessage({
-        type: 'success',
-        text: result.message || `${provider} 계정 연동이 해제되었습니다.`,
-      });
-
-      // 계정 목록 새로고침
-      fetchLinkedAccounts(accessToken);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '오류가 발생했습니다.';
-      setMessage({
-        type: 'error',
-        text: errorMessage,
-      });
-    }
+    unlinkMutation.mutate(
+      { provider, accessToken },
+      {
+        onSuccess: (result) => {
+          setMessage({
+            type: 'success',
+            text: result.message || `${provider} 계정 연동이 해제되었습니다.`,
+          });
+        },
+        onError: (error) => {
+          setMessage({ type: 'error', text: error.message });
+        },
+      },
+    );
   };
 
   const isLinked = (provider: string): boolean => {
     return linkedAccounts.some((account) => account.provider === provider);
   };
+
+  const loading = authQuery.isLoading || linkedAccountsQuery.isLoading;
 
   if (loading) {
     return (
@@ -163,7 +125,6 @@ function OAuthAccountsContent(): React.JSX.Element {
               }}
               onRetryClick={() => {
                 clearEmailDuplicateDetails();
-                // 계정 설정 페이지에 머무름
               }}
             />
           </div>

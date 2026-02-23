@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { authService } from '@/services/authService';
-import { AuthError } from '@/types';
-import { StatusCard, StatusCardIcons, AuthPageLayout, FormCard } from '@/components/common';
-import { useFormInput } from '@/hooks/useFormInput';
+import { useForm } from 'react-hook-form';
+import { useForgotPassword } from '@/hooks/mutations/useForgotPassword';
 import { validateEmail } from '@/utils/validators';
+import { StatusCard, StatusCardIcons, AuthPageLayout, FormCard } from '@/components/common';
 import {
   FormInput,
   FormInputIcons,
@@ -14,80 +13,30 @@ import {
   SubmitButton,
   SubmitButtonIcons,
 } from '@/components/form';
+import type { ForgotPasswordFormData } from '@/types';
 
 export default function ForgotPasswordPage(): React.JSX.Element {
-  // 폼 입력 관리
   const {
-    values: formData,
-    errors,
-    handleChange,
-    setError,
-    setErrors,
-    clearAllErrors,
-  } = useFormInput(
-    { email: '' },
-    { validateOnChange: true, trimOnChange: true }
-  );
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormData>({
+    defaultValues: { email: '' },
+  });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [lastError, setLastError] = useState<AuthError | null>(null);
+  const forgotMutation = useForgotPassword();
 
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    // 이메일 유효성 검사
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid && emailValidation.error) {
-      newErrors.email = emailValidation.error;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const onSubmit = (data: ForgotPasswordFormData): void => {
+    forgotMutation.mutate(data);
   };
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    try {
-      setIsLoading(true);
-      await authService.forgotPassword(formData);
-      setSuccess(true);
-      setLastError(null);
-    } catch (error) {
-      const authError = error as AuthError;
-      const errorMessage = authError?.message || '요청 처리 중 오류가 발생했습니다';
-      setError('submit', errorMessage);
-      setLastError(authError);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRetry = (): void => {
+    if (!forgotMutation.error?.isRetryable) return;
+    forgotMutation.mutate(getValues());
   };
 
-  // 수동 재시도 함수
-  const handleRetry = async (): Promise<void> => {
-    if (!lastError || !lastError.isRetryable) return;
-
-    setIsRetrying(true);
-    clearAllErrors();
-
-    try {
-      await authService.forgotPassword(formData);
-      setSuccess(true);
-      setLastError(null);
-    } catch (retryError) {
-      const authRetryError = retryError as AuthError;
-      setLastError(authRetryError);
-      setError('submit', authRetryError.message);
-    } finally {
-      setIsRetrying(false);
-    }
-  };
-
-  if (success) {
+  if (forgotMutation.isSuccess) {
     return (
       <AuthPageLayout variant="form">
         <FormCard>
@@ -98,7 +47,7 @@ export default function ForgotPasswordPage(): React.JSX.Element {
               description={
                 <>
                   <p>
-                    비밀번호 재설정 링크를 <strong>{formData.email}</strong>로 발송했습니다.
+                    비밀번호 재설정 링크를 <strong>{getValues('email')}</strong>로 발송했습니다.
                   </p>
                   <p className="text-sm text-gray-400 mt-2">
                     이메일을 받지 못하셨다면 스팸 폴더를 확인해 주세요.
@@ -128,33 +77,36 @@ export default function ForgotPasswordPage(): React.JSX.Element {
 
         {/* 비밀번호 찾기 폼 */}
         <FormCard>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* 이메일 */}
             <FormInput
-              name="email"
               label="이메일 주소"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
+              registration={register('email', {
+                validate: (value) => {
+                  const result = validateEmail(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="이메일을 입력하세요"
-              error={errors.email}
+              error={errors.email?.message}
               icon={FormInputIcons.Email}
             />
 
             {/* 에러 표시 */}
-            {errors.submit && (
+            {forgotMutation.error && (
               <FormError
-                message={errors.submit}
-                error={lastError}
+                message={forgotMutation.error.message}
+                error={forgotMutation.error}
                 onRetry={handleRetry}
-                isRetrying={isRetrying}
+                isRetrying={forgotMutation.isPending}
               />
             )}
 
             {/* 제출 버튼 */}
             <SubmitButton
-              isLoading={isLoading || isRetrying}
-              loadingText={isRetrying ? '재시도 중...' : '전송 중...'}
+              isLoading={forgotMutation.isPending}
+              loadingText="전송 중..."
               icon={SubmitButtonIcons.Send}
             >
               재설정 링크 보내기

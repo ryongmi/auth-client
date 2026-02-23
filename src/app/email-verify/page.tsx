@@ -1,84 +1,93 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { authService } from '@/services/authService';
-import type { AuthError } from '@/types';
+import { useVerifyEmail } from '@/hooks/mutations/useVerifyEmail';
 import { StatusCard, StatusCardIcons, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function EmailVerifyContent(): React.JSX.Element {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const verifyMutation = useVerifyEmail();
 
   useEffect(() => {
-    const verifyEmailToken = async (): Promise<void> => {
-      const token = searchParams.get('token');
+    const token = searchParams.get('token');
 
-      if (!token) {
-        setStatus('error');
-        setError('인증 토큰이 없습니다.');
-        return;
-      }
+    if (!token) {
+      return;
+    }
 
-      try {
-        await authService.verifyEmail(token);
-        setStatus('success');
-
-        // 2초 후 로그인 페이지로 리다이렉트
+    verifyMutation.mutate(token, {
+      onSuccess: () => {
         setTimeout(() => {
           router.push('/login');
         }, 2000);
-      } catch (err) {
-        const authError = err as AuthError;
-        setStatus('error');
-        setError(authError.message || '이메일 인증에 실패했습니다.');
-      }
-    };
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
-    void verifyEmailToken();
-  }, [searchParams, router]);
+  const token = searchParams.get('token');
 
   return (
     <AuthPageLayout>
-      {status === 'loading' && <LoadingSpinner title="이메일 인증 중..." />}
+      {!token && (
+        <StatusCard
+          type="error"
+          icon={StatusCardIcons.Close}
+          title="인증 실패"
+          description="인증 토큰이 없습니다."
+          actions={[
+            {
+              label: '인증 메일 재발송',
+              href: '/email-verify/resend',
+            },
+            {
+              label: '로그인 페이지로 이동',
+              href: '/login',
+              variant: 'secondary',
+            },
+          ]}
+        />
+      )}
 
-        {status === 'success' && (
-          <StatusCard
-            type="success"
-            icon={StatusCardIcons.Check}
-            title="인증 완료!"
-            description={
-              <>
-                <p>이메일 인증이 성공적으로 완료되었습니다.</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  잠시 후 로그인 페이지로 이동합니다...
-                </p>
-              </>
-            }
-          />
-        )}
+      {token && verifyMutation.isPending && <LoadingSpinner title="이메일 인증 중..." />}
 
-        {status === 'error' && (
-          <StatusCard
-            type="error"
-            icon={StatusCardIcons.Close}
-            title="인증 실패"
-            description={error || '이메일 인증에 실패했습니다.'}
-            actions={[
-              {
-                label: '인증 메일 재발송',
-                href: '/email-verify/resend',
-              },
-              {
-                label: '로그인 페이지로 이동',
-                href: '/login',
-                variant: 'secondary',
-              },
-            ]}
-          />
-        )}
+      {verifyMutation.isSuccess && (
+        <StatusCard
+          type="success"
+          icon={StatusCardIcons.Check}
+          title="인증 완료!"
+          description={
+            <>
+              <p>이메일 인증이 성공적으로 완료되었습니다.</p>
+              <p className="text-sm text-gray-400 mt-2">
+                잠시 후 로그인 페이지로 이동합니다...
+              </p>
+            </>
+          }
+        />
+      )}
+
+      {verifyMutation.isError && (
+        <StatusCard
+          type="error"
+          icon={StatusCardIcons.Close}
+          title="인증 실패"
+          description={verifyMutation.error?.message || '이메일 인증에 실패했습니다.'}
+          actions={[
+            {
+              label: '인증 메일 재발송',
+              href: '/email-verify/resend',
+            },
+            {
+              label: '로그인 페이지로 이동',
+              href: '/login',
+              variant: 'secondary',
+            },
+          ]}
+        />
+      )}
     </AuthPageLayout>
   );
 }

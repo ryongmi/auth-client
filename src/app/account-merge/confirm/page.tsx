@@ -1,124 +1,86 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useVerifyMergeToken } from '@/hooks/queries/useVerifyMergeToken';
+import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
+import { useConfirmMerge } from '@/hooks/mutations/useConfirmMerge';
+import { useRejectMerge } from '@/hooks/mutations/useRejectMerge';
 import { accountMergeService } from '@/services/accountMergeService';
-import { useAuthInitialize } from '@/hooks/useAuthInitialize';
 import type { AuthError, AccountMergeResponse } from '@/types';
 import { AccountMergeStatus } from '@/types';
 import { getProviderLabel } from '@/utils/providerMapper';
 import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function AccountMergeConfirmContent(): React.JSX.Element {
-  const [status, setStatus] = useState<
-    'verifying' | 'loading' | 'loaded' | 'processing' | 'error'
-  >('verifying');
   const [mergeRequest, setMergeRequest] = useState<AccountMergeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [requestId, setRequestId] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const token = searchParams.get('token');
 
   // 1단계: 토큰 검증
-  useEffect(() => {
-    const verifyToken = async (): Promise<void> => {
-      if (!token) {
-        setStatus('error');
-        setError('토큰이 제공되지 않았습니다. 이메일 링크를 다시 확인해주세요.');
-        return;
-      }
+  const tokenQuery = useVerifyMergeToken(token);
 
-      try {
-        // 토큰 검증 (인증 불필요)
-        const result = await accountMergeService.verifyToken(token);
-        setRequestId(result.requestId);
-        setStatus('loading');
-      } catch (err) {
-        const authError = err as AuthError;
-        setStatus('error');
-        setError(authError.message || '토큰이 유효하지 않거나 만료되었습니다.');
-      }
-    };
-
-    void verifyToken();
-  }, [token]);
-
-  // 2단계: 인증 확인 및 병합 요청 조회
-  useAuthInitialize({
-    enabled: status === 'loading' && requestId !== null,
-    onSuccess: async ({ accessToken }) => {
-      setAccessToken(accessToken);
-
-      // 병합 요청 조회
-      const request = await accountMergeService.getAccountMerge(requestId!, accessToken);
-
-      // 만료 여부 확인 후 만료 페이지로 리다이렉트
-      const isRequestExpired = new Date(request.expiresAt) < new Date();
-      if (isRequestExpired) {
-        router.push('/account-merge/expired');
-        return;
-      }
-
-      setMergeRequest(request);
-      setStatus('loaded');
-    },
-    onUnauthorized: () => {
-      setError('로그인이 필요합니다. 로그인 후 다시 시도해주세요.');
-      setStatus('error');
-      setTimeout(() => {
-        router.push(`/login?redirect=/account-merge/confirm?token=${encodeURIComponent(token || '')}`);
-      }, 2000);
-    },
-    onError: (authError) => {
-      setStatus('error');
-      setError(authError.message || '병합 요청을 불러오는데 실패했습니다.');
-    },
+  // 2단계: 인증 확인
+  const authQuery = useAuthInitialize({
+    enabled: tokenQuery.isSuccess && !!tokenQuery.data?.requestId,
   });
 
-  // 병합 승인
-  const handleConfirm = async (): Promise<void> => {
-    if (!accessToken || requestId === null) return;
+  // 인증 성공 후 병합 요청 조회
+  const accessToken = authQuery.data?.accessToken || null;
+  const requestId = tokenQuery.data?.requestId || null;
 
-    setStatus('processing');
-    try {
-      await accountMergeService.confirmAccountMerge(requestId, accessToken);
-      // 성공 페이지로 리다이렉트
-      router.push('/account-merge/success');
-    } catch (err) {
-      const authError = err as AuthError;
-      setStatus('error');
-      setError(authError.message || '계정 병합에 실패했습니다.');
-    }
+  // 병합 요청 조회 (authQuery 성공 시)
+  if (authQuery.isSuccess && accessToken && requestId && !mergeRequest && !loadError) {
+    void (async () => {
+      try {
+        const request = await accountMergeService.getAccountMerge(requestId, accessToken);
+        const isRequestExpired = new Date(request.expiresAt) < new Date();
+        if (isRequestExpired) {
+          router.push('/account-merge/expired');
+          return;
+        }
+        setMergeRequest(request);
+      } catch (err) {
+        const authError = err as AuthError;
+        setLoadError(authError.message || '병합 요청을 불러오는데 실패했습니다.');
+      }
+    })();
+  }
+
+  // 인증 실패 시 로그인 리다이렉트
+  if (authQuery.isError && authQuery.error?.code === 'HTTP_401') {
+    setTimeout(() => {
+      router.push(`/login?redirect=/account-merge/confirm?token=${encodeURIComponent(token || '')}`);
+    }, 2000);
+  }
+
+  const confirmMutation = useConfirmMerge();
+  const rejectMutation = useRejectMerge();
+
+  const handleConfirm = (): void => {
+    if (!accessToken || requestId === null) return;
+    confirmMutation.mutate(
+      { requestId, accessToken },
+      { onSuccess: () => router.push('/account-merge/success') },
+    );
   };
 
-  // 병합 거부
-  const handleReject = async (): Promise<void> => {
+  const handleReject = (): void => {
     if (!accessToken || requestId === null) return;
-
-    setStatus('processing');
-    try {
-      await accountMergeService.rejectAccountMerge(requestId, accessToken);
-      // 거부 페이지로 리다이렉트
-      router.push('/account-merge/rejected');
-    } catch (err) {
-      const authError = err as AuthError;
-      setStatus('error');
-      setError(authError.message || '요청 거부에 실패했습니다.');
-    }
+    rejectMutation.mutate(
+      { requestId, accessToken },
+      { onSuccess: () => router.push('/account-merge/rejected') },
+    );
   };
 
-  // 상태별 메시지 및 스타일
   const getStatusDisplay = (mergeStatus: AccountMergeStatus) => {
     switch (mergeStatus) {
-      // 대기 중 상태
       case AccountMergeStatus.PENDING_EMAIL_VERIFICATION:
       case AccountMergeStatus.EMAIL_VERIFIED:
         return { text: '대기 중', color: 'bg-yellow-100 text-yellow-800' };
-
-      // 처리 중 상태
       case AccountMergeStatus.IN_PROGRESS:
       case AccountMergeStatus.STEP1_AUTH_BACKUP:
       case AccountMergeStatus.STEP2_AUTHZ_MERGE:
@@ -126,42 +88,41 @@ function AccountMergeConfirmContent(): React.JSX.Element {
       case AccountMergeStatus.STEP4_USER_DELETE:
       case AccountMergeStatus.STEP5_CACHE_INVALIDATE:
         return { text: '처리 중', color: 'bg-blue-100 text-blue-800' };
-
-      // 완료 상태
       case AccountMergeStatus.COMPLETED:
         return { text: '완료됨', color: 'bg-green-100 text-green-800' };
-
-      // 거부/취소 상태
       case AccountMergeStatus.CANCELLED:
         return { text: '거부됨', color: 'bg-red-100 text-red-800' };
-
-      // 실패 상태
       case AccountMergeStatus.FAILED:
       case AccountMergeStatus.COMPENSATING:
       case AccountMergeStatus.COMPENSATED:
         return { text: '실패', color: 'bg-red-100 text-red-800' };
-
       default:
         return { text: mergeStatus, color: 'bg-gray-100 text-gray-800' };
     }
   };
 
-  // 만료 여부 확인
   const isExpired = mergeRequest ? new Date(mergeRequest.expiresAt) < new Date() : false;
+  const isLoading = !token ? false : tokenQuery.isLoading || authQuery.isLoading || (authQuery.isSuccess && !mergeRequest && !loadError);
+  const isProcessing = confirmMutation.isPending || rejectMutation.isPending;
+  const error = !token
+    ? '토큰이 제공되지 않았습니다. 이메일 링크를 다시 확인해주세요.'
+    : tokenQuery.error?.message
+    || (authQuery.isError ? authQuery.error?.message : null)
+    || loadError
+    || confirmMutation.error?.message
+    || rejectMutation.error?.message
+    || null;
 
   return (
     <AuthPageLayout>
-        {/* 토큰 검증 중 */}
-        {status === 'verifying' && <LoadingSpinner title="토큰 확인 중..." />}
-
         {/* 로딩 상태 */}
-        {status === 'loading' && <LoadingSpinner title="요청 정보 확인 중..." />}
+        {isLoading && <LoadingSpinner title="요청 정보 확인 중..." />}
 
         {/* 처리 중 상태 */}
-        {status === 'processing' && <LoadingSpinner title="처리 중..." />}
+        {isProcessing && <LoadingSpinner title="처리 중..." />}
 
         {/* 병합 요청 정보 표시 */}
-        {status === 'loaded' && mergeRequest && (
+        {!isLoading && !isProcessing && !error && mergeRequest && (
           <div>
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -268,12 +229,12 @@ function AccountMergeConfirmContent(): React.JSX.Element {
         )}
 
         {/* 에러 상태 */}
-        {status === 'error' && (
+        {!isLoading && !isProcessing && error && !mergeRequest && (
           <StatusCard
             type="error"
             icon={StatusCardIcons.Close}
             title="오류 발생"
-            description={error || '알 수 없는 오류가 발생했습니다.'}
+            description={error}
             actions={[
               {
                 label: '다시 시도',

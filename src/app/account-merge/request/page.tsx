@@ -2,9 +2,8 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { accountMergeService } from '@/services/accountMergeService';
-import type { AuthError } from '@/types';
-import { useAuthInitialize } from '@/hooks/useAuthInitialize';
+import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
+import { useInitiateMerge } from '@/hooks/mutations/useInitiateMerge';
 import { getProviderLabel } from '@/utils/providerMapper';
 import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
@@ -17,71 +16,54 @@ function AccountMergeRequestContent(): React.JSX.Element {
   const providerId = searchParams.get('providerId') || '';
   const hasRequiredParams = !!provider && !!email;
 
-  const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'success' | 'error'>(
-    hasRequiredParams ? 'loading' : 'error'
-  );
-  const [error, setError] = useState<string | null>(
+  const [paramError] = useState<string | null>(
     hasRequiredParams ? null : '필수 파라미터가 누락되었습니다. (provider, email)'
   );
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [requestId, setRequestId] = useState<number | null>(null);
 
-  // 초기화: 인증 정보 확인
-  useAuthInitialize({
-    enabled: hasRequiredParams,
-    onSuccess: ({ accessToken: token }) => {
-      setAccessToken(token);
-      setStatus('ready');
-    },
-    onUnauthorized: () => {
-      setError('로그인이 필요합니다.');
-      setStatus('error');
-      setTimeout(() => {
-        const params = new URLSearchParams({ provider, email });
-        if (providerId) params.append('providerId', providerId);
-        router.push(`/login?redirect=/account-merge/request?${params.toString()}`);
-      }, 2000);
-    },
-    onError: (authError) => {
-      setStatus('error');
-      setError(authError.message || '인증 정보를 확인하는데 실패했습니다.');
-    },
-  });
+  const authQuery = useAuthInitialize({ enabled: hasRequiredParams });
+  const mergeMutation = useInitiateMerge();
 
-  // 병합 요청 전송
-  const handleSubmit = async (): Promise<void> => {
-    if (!accessToken) return;
+  // 인증 실패 시 로그인 페이지로 리다이렉트
+  if (authQuery.isError && authQuery.error?.code === 'HTTP_401') {
+    const params = new URLSearchParams({ provider, email });
+    if (providerId) params.append('providerId', providerId);
+    setTimeout(() => {
+      router.push(`/login?redirect=/account-merge/request?${params.toString()}`);
+    }, 2000);
+  }
 
-    setStatus('processing');
-    try {
-      const result = await accountMergeService.initiateAccountMerge(
-        {
-          provider,
-          providerId: providerId || '', // providerId가 없으면 서버에서 조회
-          email,
-        },
-        accessToken
-      );
+  const handleSubmit = (): void => {
+    if (!authQuery.data?.accessToken) return;
 
-      setRequestId(result.requestId);
-      setStatus('success');
-    } catch (err) {
-      const authError = err as AuthError;
-      setStatus('error');
-      setError(authError.message || '계정 병합 요청에 실패했습니다.');
-    }
+    mergeMutation.mutate({
+      dto: {
+        provider,
+        providerId: providerId || '',
+        email,
+      },
+      accessToken: authQuery.data.accessToken,
+    });
   };
+
+  const isLoading = authQuery.isLoading;
+  const isProcessing = mergeMutation.isPending;
+  const isReady = authQuery.isSuccess && !mergeMutation.isSuccess && !mergeMutation.isError;
+  const isError = paramError || authQuery.isError || mergeMutation.isError;
+  const errorMessage = paramError
+    || authQuery.error?.message
+    || mergeMutation.error?.message
+    || '알 수 없는 오류가 발생했습니다.';
 
   return (
     <AuthPageLayout>
         {/* 로딩 상태 */}
-        {status === 'loading' && <LoadingSpinner title="준비 중..." />}
+        {isLoading && <LoadingSpinner title="준비 중..." />}
 
         {/* 처리 중 상태 */}
-        {status === 'processing' && <LoadingSpinner title="요청 전송 중..." />}
+        {isProcessing && <LoadingSpinner title="요청 전송 중..." />}
 
         {/* 준비 완료 상태 - 병합 요청 폼 */}
-        {status === 'ready' && (
+        {isReady && (
           <div>
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -147,7 +129,7 @@ function AccountMergeRequestContent(): React.JSX.Element {
         )}
 
         {/* 성공 상태 */}
-        {status === 'success' && (
+        {mergeMutation.isSuccess && (
           <StatusCard
             type="success"
             icon={StatusCardIcons.Check}
@@ -165,8 +147,8 @@ function AccountMergeRequestContent(): React.JSX.Element {
                 <>
                   <strong>{email}</strong> 계정 소유자에게 확인 이메일이 발송되었습니다.
                   소유자가 승인하면 계정이 병합됩니다.
-                  {requestId && (
-                    <span className="block text-xs text-blue-600 mt-2">요청 ID: {requestId}</span>
+                  {mergeMutation.data?.requestId && (
+                    <span className="block text-xs text-blue-600 mt-2">요청 ID: {mergeMutation.data.requestId}</span>
                   )}
                 </>
               } />
@@ -175,12 +157,12 @@ function AccountMergeRequestContent(): React.JSX.Element {
         )}
 
         {/* 에러 상태 */}
-        {status === 'error' && (
+        {isError && !isLoading && !isProcessing && !isReady && !mergeMutation.isSuccess && (
           <StatusCard
             type="error"
             icon={StatusCardIcons.Close}
             title="오류 발생"
-            description={error || '알 수 없는 오류가 발생했습니다.'}
+            description={errorMessage}
             actions={[
               {
                 label: '다시 시도',

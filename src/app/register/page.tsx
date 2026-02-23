@@ -3,11 +3,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { signupUser } from '@/store/slices/authSlice';
-import { AuthError } from '@/types';
+import { useForm } from 'react-hook-form';
+import { useSignup } from '@/hooks/mutations/useSignup';
 import { ERROR_MESSAGES } from '@/config/constants';
-import { useFormInput } from '@/hooks/useFormInput';
 import {
   validateEmail,
   validatePassword,
@@ -22,18 +20,16 @@ import {
   SubmitButtonIcons,
 } from '@/components/form';
 import { AuthPageLayout, AuthPageFallback, FormCard } from '@/components/common';
+import type { RegisterFormData } from '@/types';
 
 function RegisterForm(): React.JSX.Element {
-  // 폼 입력 관리
   const {
-    values: formData,
-    errors,
-    handleChange,
-    setError,
-    setErrors,
-    clearAllErrors,
-  } = useFormInput(
-    {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    defaultValues: {
       email: '',
       password: '',
       confirmPassword: '',
@@ -41,18 +37,16 @@ function RegisterForm(): React.JSX.Element {
       nickname: '',
       agreedToTerms: false,
     },
-    { validateOnChange: true }
-  );
+  });
 
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [lastError, setLastError] = useState<AuthError | null>(null);
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const signupMutation = useSignup();
+  const password = watch('password');
 
   // SSO 리다이렉트 세션 및 내부 리다이렉트 경로 확인
   useEffect(() => {
@@ -61,113 +55,45 @@ function RegisterForm(): React.JSX.Element {
       setRedirectSession(session);
     }
 
-    // 내부 리다이렉트 경로 확인 (오픈 리다이렉트 방지)
     const redirect = searchParams.get('redirect');
     if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
       setRedirectPath(redirect);
     }
   }, [searchParams]);
 
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    // 이메일 유효성 검사
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid && emailValidation.error) {
-      newErrors.email = emailValidation.error;
-    }
-
-    // 이름 유효성 검사
-    const nameValidation = validateName(formData.name);
-    if (!nameValidation.isValid && nameValidation.error) {
-      newErrors.name = nameValidation.error;
-    }
-
-    // 비밀번호 유효성 검사
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid && passwordValidation.error) {
-      newErrors.password = passwordValidation.error;
-    }
-
-    // 비밀번호 확인 유효성 검사
-    const confirmValidation = validatePasswordConfirm(formData.password, formData.confirmPassword);
-    if (!confirmValidation.isValid && confirmValidation.error) {
-      newErrors.confirmPassword = confirmValidation.error;
-    }
-
-    // 약관 동의 확인
-    if (!formData.agreedToTerms) {
-      newErrors.agreedToTerms = ERROR_MESSAGES.TERMS_REQUIRED;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    try {
-      const signupResponse = await dispatch(
-        signupUser({
-          signupData: formData,
-          ...(redirectSession && { redirectSession }),
-        })
-      ).unwrap();
-
-      // 서버가 제공한 redirectUrl 사용 (SSO, OAuth 등 지원)
-      if (signupResponse.redirectUrl) {
-        window.location.href = signupResponse.redirectUrl;
-      } else {
-        // fallback: 로그인 페이지로 이동 (redirect 파라미터 보존)
-        const params = new URLSearchParams({ registered: 'true' });
-        if (redirectPath) params.set('redirect', redirectPath);
-        router.push(`/login?${params.toString()}`);
-      }
-
-      setLastError(null);
-    } catch (signupError) {
-      // 에러는 Redux slice에서 처리되지만, 재시도 가능 여부도 확인
-      const authSignupError = signupError as AuthError;
-      setLastError(authSignupError);
+  const handleRedirect = (redirectUrl?: string): void => {
+    if (redirectUrl) {
+      window.location.href = redirectUrl;
+    } else {
+      const params = new URLSearchParams({ registered: 'true' });
+      if (redirectPath) params.set('redirect', redirectPath);
+      router.push(`/login?${params.toString()}`);
     }
   };
 
-  // 수동 재시도 함수
-  const handleRetry = async (): Promise<void> => {
-    if (!lastError || !lastError.isRetryable) return;
+  const onSubmit = (data: RegisterFormData): void => {
+    setSubmitError(null);
 
-    setIsRetrying(true);
-    clearAllErrors();
+    signupMutation.mutate(
+      {
+        signupData: data,
+        ...(redirectSession && { redirectSession }),
+      },
+      {
+        onSuccess: (response) => {
+          handleRedirect(response.redirectUrl);
+        },
+        onError: (error) => {
+          setSubmitError(error.message);
+        },
+      },
+    );
+  };
 
-    try {
-      const signupResponse = await dispatch(
-        signupUser({
-          signupData: formData,
-          ...(redirectSession && { redirectSession }),
-        })
-      ).unwrap();
-
-      // 서버가 제공한 redirectUrl 사용 (SSO, OAuth 등 지원)
-      if (signupResponse.redirectUrl) {
-        window.location.href = signupResponse.redirectUrl;
-      } else {
-        // fallback: 로그인 페이지로 이동 (redirect 파라미터 보존)
-        const params = new URLSearchParams({ registered: 'true' });
-        if (redirectPath) params.set('redirect', redirectPath);
-        router.push(`/login?${params.toString()}`);
-      }
-
-      setLastError(null);
-    } catch (retryError) {
-      const authRetryError = retryError as AuthError;
-      setLastError(authRetryError);
-      setError("submit", authRetryError.message);
-    } finally {
-      setIsRetrying(false);
-    }
+  const handleRetry = (): void => {
+    if (!signupMutation.error?.isRetryable) return;
+    // re-trigger with current form values via handleSubmit
+    void handleSubmit(onSubmit)();
   };
 
   return (
@@ -179,63 +105,73 @@ function RegisterForm(): React.JSX.Element {
 
         {/* 회원가입 폼 */}
         <FormCard>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* 이메일 */}
             <FormInput
-              name="email"
               label="이메일 주소"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
+              registration={register('email', {
+                validate: (value) => {
+                  const result = validateEmail(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="이메일을 입력하세요"
-              error={errors.email}
+              error={errors.email?.message}
               icon={FormInputIcons.Email}
             />
 
             {/* 이름 */}
             <FormInput
-              name="name"
               label="이름"
               type="text"
-              value={formData.name}
-              onChange={handleChange}
+              registration={register('name', {
+                validate: (value) => {
+                  const result = validateName(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="이름을 입력하세요"
-              error={errors.name}
+              error={errors.name?.message}
               icon={FormInputIcons.User}
             />
 
             {/* 닉네임 (선택사항) */}
             <FormInput
-              name="nickname"
               label="닉네임"
               type="text"
-              value={formData.nickname}
-              onChange={handleChange}
+              registration={register('nickname')}
               placeholder="닉네임을 입력하세요"
               labelSuffix={<span className="text-gray-400">(선택사항)</span>}
             />
 
             {/* 비밀번호 */}
             <FormInput
-              name="password"
               label="비밀번호"
               type="password"
-              value={formData.password}
-              onChange={handleChange}
+              registration={register('password', {
+                validate: (value) => {
+                  const result = validatePassword(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="비밀번호를 입력하세요"
-              error={errors.password}
+              error={errors.password?.message}
               icon={FormInputIcons.Password}
             />
 
             {/* 비밀번호 확인 */}
             <FormInput
-              name="confirmPassword"
               label="비밀번호 확인"
               type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
+              registration={register('confirmPassword', {
+                validate: (value) => {
+                  const result = validatePasswordConfirm(password, value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="비밀번호를 다시 입력하세요"
-              error={errors.confirmPassword}
+              error={errors.confirmPassword?.message}
               icon={FormInputIcons.Check}
             />
 
@@ -244,10 +180,10 @@ function RegisterForm(): React.JSX.Element {
               <div className="flex items-start">
                 <input
                   id="agreedToTerms"
-                  name="agreedToTerms"
                   type="checkbox"
-                  checked={formData.agreedToTerms}
-                  onChange={handleChange}
+                  {...register('agreedToTerms', {
+                    validate: (value) => value || ERROR_MESSAGES.TERMS_REQUIRED,
+                  })}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
                 />
                 <label htmlFor="agreedToTerms" className="ml-2 block text-sm text-gray-600">
@@ -262,24 +198,24 @@ function RegisterForm(): React.JSX.Element {
                 </label>
               </div>
               {errors.agreedToTerms && (
-                <p className="mt-2 text-sm text-red-600">{errors.agreedToTerms}</p>
+                <p className="mt-2 text-sm text-red-600">{errors.agreedToTerms.message}</p>
               )}
             </div>
 
             {/* 향상된 에러 표시 */}
-            {error && (
+            {submitError && (
               <FormError
-                message={error}
-                error={lastError}
+                message={submitError}
+                error={signupMutation.error}
                 onRetry={handleRetry}
-                isRetrying={isRetrying}
+                isRetrying={signupMutation.isPending}
               />
             )}
 
             {/* 회원가입 버튼 */}
             <SubmitButton
-              isLoading={isLoading || isRetrying}
-              loadingText={isRetrying ? '재시도 중...' : '가입 중...'}
+              isLoading={signupMutation.isPending}
+              loadingText="가입 중..."
               icon={SubmitButtonIcons.Signup}
             >
               회원가입

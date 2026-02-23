@@ -3,13 +3,12 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loginUser, clearError } from "@/store/slices/authSlice";
+import { useForm } from "react-hook-form";
+import { useLogin } from "@/hooks/mutations/useLogin";
+import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
-import { AuthError } from "@/types";
 import { OAuthEmailDuplicateError } from "@/components/OAuthEmailDuplicateError";
 import { useOAuthErrorHandling } from "@/hooks/useOAuthErrorHandling";
-import { useFormInput } from "@/hooks/useFormInput";
 import { AUTH_CONFIG, ERROR_MESSAGES } from "@/config/constants";
 import {
   validateEmail,
@@ -24,38 +23,30 @@ import {
   SubmitButtonIcons,
 } from "@/components/form";
 import { Alert, AuthPageLayout, AuthPageFallback, FormCard } from "@/components/common";
+import type { LoginFormData } from "@/types";
 
 function LoginPageContent(): React.JSX.Element {
-  // 폼 입력 관리
   const {
-    values: formData,
-    errors,
-    handleChange,
-    setError,
-    setErrors,
-    clearAllErrors,
-  } = useFormInput(
-    { email: "", password: "" },
-    { validateOnChange: true, trimOnChange: true }
-  );
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    defaultValues: { email: "", password: "" },
+  });
 
   const [redirectSession, setRedirectSession] = useState<string | null>(null);
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const [isSSO, setIsSSO] = useState(false);
-  const [remainingAttempts, setRemainingAttempts] = useState<number>(AUTH_CONFIG.LOGIN_MAX_ATTEMPTS);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [lastError, setLastError] = useState<AuthError | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useAppDispatch();
-  const formRef = useRef<HTMLFormElement>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
 
-  const { isLoading, error, isBlocked, loginAttempts } = useAppSelector(
-    (state) => state.auth
-  );
+  const loginMutation = useLogin();
+  const { loginAttempts, isBlocked } = useAuthStore();
+  const remainingAttempts = Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts);
 
   // OAuth 에러 처리 훅
   const {
@@ -67,14 +58,12 @@ function LoginPageContent(): React.JSX.Element {
 
   // SSO 리다이렉트 세션 및 내부 리다이렉트 경로 확인
   useEffect(() => {
-    // URL 파라미터에서 SSO 세션 정보 확인
     const session = searchParams.get("redirect_session");
 
     if (session) {
-      // 세션 ID 유효성 검증
       const sessionValidation = validateSessionId(session);
       if (!sessionValidation.isValid) {
-        setError("submit", sessionValidation.error || ERROR_MESSAGES.INVALID_SSO_SESSION);
+        setSubmitError(sessionValidation.error || ERROR_MESSAGES.INVALID_SSO_SESSION);
         return;
       }
 
@@ -82,139 +71,85 @@ function LoginPageContent(): React.JSX.Element {
       setIsSSO(true);
     }
 
-    // 내부 리다이렉트 경로 확인 (오픈 리다이렉트 방지)
     const redirect = searchParams.get("redirect");
     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
       setRedirectPath(redirect);
     }
-
-    // 로그인 시도 횟수 확인
-    setRemainingAttempts(Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts));
-  }, [searchParams, loginAttempts, setError]);
+  }, [searchParams]);
 
   // OAuth 에러 메시지를 폼 에러로 동기화
   useEffect(() => {
     if (oauthErrorMessage) {
-      setError("submit", oauthErrorMessage);
+      setSubmitError(oauthErrorMessage);
       clearErrorMessage();
     }
-  }, [oauthErrorMessage, clearErrorMessage, setError]);
+  }, [oauthErrorMessage, clearErrorMessage]);
 
-  // 에러 상태 정리
-  useEffect(() => {
-    if (error) {
-      setError("submit", error);
-      setLastError(null); // Redux 에러 우선
-      dispatch(clearError());
-    }
-  }, [error, dispatch, setError]);
-
-  // 수동 재시도 함수
-  const handleRetry = async (): Promise<void> => {
-    if (!lastError || !lastError.isRetryable) return;
-
-    setIsRetrying(true);
-    clearAllErrors();
-    setRetryCount(prev => prev + 1);
-
-    try {
-      const loginResponse = await dispatch(
-        loginUser({
-          loginData: formData,
-          ...(redirectSession && { redirectSession }),
-        })
-      ).unwrap();
-
-      // 리다이렉트 우선순위: redirect_session(SSO) > redirect(내부 경로) > 기본
-      if (redirectSession && loginResponse.redirectUrl) {
-        window.location.href = loginResponse.redirectUrl;
-      } else if (redirectPath) {
-        window.location.href = redirectPath;
-      } else {
-        window.location.href = loginResponse.redirectUrl || "/";
-      }
-      setLastError(null);
-      setRetryCount(0);
-    } catch (retryError) {
-      const authRetryError = retryError as AuthError;
-      setLastError(authRetryError);
-      setError("submit", authRetryError.message);
-    } finally {
-      setIsRetrying(false);
+  const handleRedirect = (redirectUrl?: string): void => {
+    if (redirectSession && redirectUrl) {
+      window.location.href = redirectUrl;
+    } else if (redirectPath) {
+      window.location.href = redirectPath;
+    } else {
+      window.location.href = redirectUrl || "/";
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
+  const onSubmit = (data: LoginFormData): void => {
     // Honeypot 검사 (봇 탐지)
     if (honeypotRef.current?.value) {
-      newErrors.submit = ERROR_MESSAGES.SUSPICIOUS_REQUEST;
-      return false;
+      setSubmitError(ERROR_MESSAGES.SUSPICIOUS_REQUEST);
+      return;
     }
 
-    // 이메일 유효성 검사
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid && emailValidation.error) {
-      newErrors.email = emailValidation.error;
-    }
+    setSubmitError(null);
 
-    // 비밀번호 유효성 검사
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid && passwordValidation.error) {
-      newErrors.password = passwordValidation.error;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    loginMutation.mutate(
+      {
+        loginData: data,
+        ...(redirectSession && { redirectSession }),
+      },
+      {
+        onSuccess: (response) => {
+          handleRedirect(response.redirectUrl);
+        },
+        onError: (error) => {
+          setSubmitError(error.message);
+        },
+      },
+    );
   };
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
+  const handleRetry = (): void => {
+    const data = getValues();
+    setSubmitError(null);
 
-    if (!validateForm()) return;
-
-    try {
-      // 로그인 처리 (SSO와 일반 로그인 통합)
-      const loginResponse = await dispatch(
-        loginUser({
-          loginData: formData,
-          ...(redirectSession && { redirectSession }),
-        })
-      ).unwrap();
-
-      // 리다이렉트 우선순위: redirect_session(SSO) > redirect(내부 경로) > 기본
-      if (redirectSession && loginResponse.redirectUrl) {
-        window.location.href = loginResponse.redirectUrl;
-      } else if (redirectPath) {
-        window.location.href = redirectPath;
-      } else {
-        window.location.href = loginResponse.redirectUrl || "/";
-      }
-      setLastError(null);
-    } catch (loginError) {
-      // 에러는 Redux slice에서 처리되지만, 재시도 가능 여부도 확인
-      const authLoginError = loginError as AuthError;
-      setLastError(authLoginError);
-      const remaining = Math.max(0, AUTH_CONFIG.LOGIN_MAX_ATTEMPTS - loginAttempts - 1);
-      setRemainingAttempts(remaining);
-    }
+    loginMutation.mutate(
+      {
+        loginData: data,
+        ...(redirectSession && { redirectSession }),
+      },
+      {
+        onSuccess: (response) => {
+          handleRedirect(response.redirectUrl);
+        },
+        onError: (error) => {
+          setSubmitError(error.message);
+        },
+      },
+    );
   };
 
   // Google 로그인 처리
   const handleGoogleLogin = (): void => {
-    const redirectSession = searchParams.get("redirect_session");
-    const googleUrl = authService.getGoogleLoginUrl(
-      redirectSession || undefined
-    );
-    window.location.href = googleUrl;
+    const session = searchParams.get("redirect_session");
+    window.location.href = authService.getGoogleLoginUrl(session || undefined);
   };
 
   // Naver 로그인 처리
   const handleNaverLogin = (): void => {
-    const redirectSession = searchParams.get("redirect_session");
-    const naverUrl = authService.getNaverLoginUrl(redirectSession || undefined);
-    window.location.href = naverUrl;
+    const session = searchParams.get("redirect_session");
+    window.location.href = authService.getNaverLoginUrl(session || undefined);
   };
 
   return (
@@ -235,7 +170,7 @@ function LoginPageContent(): React.JSX.Element {
 
         {/* 로그인 폼 */}
         <FormCard>
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Honeypot 필드 (봇 탐지용) */}
             <input
               ref={honeypotRef}
@@ -255,25 +190,31 @@ function LoginPageContent(): React.JSX.Element {
 
             {/* 이메일 */}
             <FormInput
-              name="email"
               label="이메일 주소"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
+              registration={register("email", {
+                validate: (value) => {
+                  const result = validateEmail(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="이메일을 입력하세요"
-              error={errors.email}
+              error={errors.email?.message}
               icon={FormInputIcons.Email}
             />
 
             {/* 비밀번호 */}
             <FormInput
-              name="password"
               label="비밀번호"
               type="password"
-              value={formData.password}
-              onChange={handleChange}
+              registration={register("password", {
+                validate: (value) => {
+                  const result = validatePassword(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="비밀번호를 입력하세요"
-              error={errors.password}
+              error={errors.password?.message}
               icon={FormInputIcons.Password}
             />
 
@@ -309,14 +250,12 @@ function LoginPageContent(): React.JSX.Element {
                 details={oauthEmailDuplicateDetails}
                 onLoginClick={() => {
                   clearEmailDuplicateDetails();
-                  // 로그인 폼으로 스크롤 (이미 로그인 페이지이므로)
                 }}
                 onRetryClick={() => {
                   clearEmailDuplicateDetails();
                   router.push('/oauth');
                 }}
                 onMergeClick={() => {
-                  // 계정 병합 요청 페이지로 이동
                   const params = new URLSearchParams({
                     provider: oauthEmailDuplicateDetails.attemptedProvider,
                     email: oauthEmailDuplicateDetails.email,
@@ -327,13 +266,12 @@ function LoginPageContent(): React.JSX.Element {
             )}
 
             {/* 향상된 에러 표시 (일반 에러용) */}
-            {!oauthEmailDuplicateDetails && errors.submit && (
+            {!oauthEmailDuplicateDetails && submitError && (
               <FormError
-                message={errors.submit}
-                error={lastError}
+                message={submitError}
+                error={loginMutation.error}
                 onRetry={handleRetry}
-                isRetrying={isRetrying}
-                retryCount={retryCount}
+                isRetrying={loginMutation.isPending}
               />
             )}
 
@@ -352,8 +290,8 @@ function LoginPageContent(): React.JSX.Element {
 
             {/* 로그인 버튼 */}
             <SubmitButton
-              isLoading={isLoading || isRetrying}
-              loadingText={isRetrying ? '재시도 중...' : '로그인 중...'}
+              isLoading={loginMutation.isPending}
+              loadingText="로그인 중..."
               isBlocked={isBlocked}
               icon={SubmitButtonIcons.Login}
             >

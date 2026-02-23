@@ -3,9 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authService } from '@/services/authService';
-import { AuthError } from '@/types';
-import { useFormInput } from '@/hooks/useFormInput';
+import { useForm } from 'react-hook-form';
+import { useResetPassword } from '@/hooks/mutations/useResetPassword';
 import { validatePassword, validatePasswordConfirm } from '@/utils/validators';
 import {
   FormInput,
@@ -16,28 +15,28 @@ import {
 } from '@/components/form';
 import { StatusCard, StatusCardIcons, Alert, AuthPageLayout, AuthPageFallback, FormCard } from '@/components/common';
 
-function ResetPasswordPageContent(): React.JSX.Element {
-  // 폼 입력 관리
-  const {
-    values: formData,
-    errors,
-    handleChange,
-    setError,
-    setErrors,
-    clearAllErrors,
-  } = useFormInput(
-    { password: '', confirmPassword: '' },
-    { validateOnChange: true }
-  );
+interface ResetPasswordForm {
+  password: string;
+  confirmPassword: string;
+}
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+function ResetPasswordPageContent(): React.JSX.Element {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ResetPasswordForm>({
+    defaultValues: { password: '', confirmPassword: '' },
+  });
+
   const [token, setToken] = useState<string | null>(null);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [lastError, setLastError] = useState<AuthError | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const resetMutation = useResetPassword();
+  const password = watch('password');
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
@@ -46,87 +45,26 @@ function ResetPasswordPageContent(): React.JSX.Element {
       return;
     }
 
-    // 토큰 유효성 기본 검증
     if (tokenParam.length < 10) {
-      setError('submit', '유효하지 않은 재설정 링크입니다');
+      setTokenError('유효하지 않은 재설정 링크입니다');
       return;
     }
 
     setToken(tokenParam);
-  }, [searchParams, router, setError]);
+  }, [searchParams, router]);
 
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
+  const onSubmit = (data: ResetPasswordForm): void => {
+    if (!token) return;
 
-    // 비밀번호 유효성 검사
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid && passwordValidation.error) {
-      newErrors.password = passwordValidation.error;
-    }
-
-    // 비밀번호 확인 유효성 검사
-    const confirmValidation = validatePasswordConfirm(
-      formData.password,
-      formData.confirmPassword
-    );
-    if (!confirmValidation.isValid && confirmValidation.error) {
-      newErrors.confirmPassword = confirmValidation.error;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    resetMutation.mutate({ token, password: data.password });
   };
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-
-    if (!validateForm() || !token) return;
-
-    try {
-      setIsLoading(true);
-      await authService.resetPassword({
-        token,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-      });
-      setSuccess(true);
-      setLastError(null);
-    } catch (error) {
-      const authError = error as AuthError;
-      const errorMessage =
-        authError?.message || '비밀번호 재설정 중 오류가 발생했습니다';
-      setError('submit', errorMessage);
-      setLastError(authError);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRetry = (): void => {
+    if (!resetMutation.error?.isRetryable) return;
+    void handleSubmit(onSubmit)();
   };
 
-  // 수동 재시도 함수
-  const handleRetry = async (): Promise<void> => {
-    if (!lastError || !lastError.isRetryable || !token) return;
-
-    setIsRetrying(true);
-    clearAllErrors();
-
-    try {
-      await authService.resetPassword({
-        token,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-      });
-      setSuccess(true);
-      setLastError(null);
-    } catch (retryError) {
-      const authRetryError = retryError as AuthError;
-      setLastError(authRetryError);
-      setError('submit', authRetryError.message);
-    } finally {
-      setIsRetrying(false);
-    }
-  };
-
-  if (success) {
+  if (resetMutation.isSuccess) {
     return (
       <AuthPageLayout variant="form">
         <FormCard>
@@ -159,28 +97,34 @@ function ResetPasswordPageContent(): React.JSX.Element {
 
         {/* 비밀번호 재설정 폼 */}
         <FormCard>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* 새 비밀번호 */}
             <FormInput
-              name="password"
               label="새 비밀번호"
               type="password"
-              value={formData.password}
-              onChange={handleChange}
+              registration={register('password', {
+                validate: (value) => {
+                  const result = validatePassword(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="새 비밀번호를 입력하세요"
-              error={errors.password}
+              error={errors.password?.message}
               icon={FormInputIcons.Password}
             />
 
             {/* 비밀번호 확인 */}
             <FormInput
-              name="confirmPassword"
               label="비밀번호 확인"
               type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
+              registration={register('confirmPassword', {
+                validate: (value) => {
+                  const result = validatePasswordConfirm(password, value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="비밀번호를 다시 입력하세요"
-              error={errors.confirmPassword}
+              error={errors.confirmPassword?.message}
               icon={FormInputIcons.Check}
             />
 
@@ -196,19 +140,19 @@ function ResetPasswordPageContent(): React.JSX.Element {
             />
 
             {/* 에러 표시 */}
-            {errors.submit && (
+            {(resetMutation.error || tokenError) && (
               <FormError
-                message={errors.submit}
-                error={lastError}
+                message={tokenError || resetMutation.error?.message || ''}
+                error={resetMutation.error}
                 onRetry={handleRetry}
-                isRetrying={isRetrying}
+                isRetrying={resetMutation.isPending}
               />
             )}
 
             {/* 제출 버튼 */}
             <SubmitButton
-              isLoading={isLoading || isRetrying}
-              loadingText={isRetrying ? '재시도 중...' : '재설정 중...'}
+              isLoading={resetMutation.isPending}
+              loadingText="재설정 중..."
               disabled={!token}
               icon={SubmitButtonIcons.Check}
             >

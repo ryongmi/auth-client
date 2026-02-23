@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/authService';
-import type { AuthError } from '@/types';
-import { useFormInput } from '@/hooks/useFormInput';
+import { useForm } from 'react-hook-form';
+import { useResendVerification } from '@/hooks/mutations/useResendVerification';
 import { validateEmail } from '@/utils/validators';
 import {
   FormInput,
@@ -15,52 +14,25 @@ import {
 } from '@/components/form';
 import { Alert, AuthPageLayout } from '@/components/common';
 
+interface ResendFormData {
+  email: string;
+}
+
 export default function EmailVerifyResendPage(): React.JSX.Element {
-  // 폼 입력 관리
   const {
-    values: formData,
-    errors,
-    handleChange,
-    setError,
-    clearAllErrors,
-  } = useFormInput(
-    { email: '' },
-    { validateOnChange: true, trimOnChange: true }
-  );
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<ResendFormData>({
+    defaultValues: { email: '' },
+  });
 
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [lastError, setLastError] = useState<AuthError | null>(null);
   const router = useRouter();
+  const resendMutation = useResendVerification();
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    clearAllErrors();
-
-    // 이메일 검증
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      setError('email', emailValidation.error || '올바른 이메일 형식이 아닙니다.');
-      return;
-    }
-
-    setStatus('loading');
-
-    try {
-      await authService.requestEmailVerification(formData.email);
-      setStatus('success');
-      setLastError(null);
-    } catch (err) {
-      const authError = err as AuthError;
-      setStatus('error');
-      setError('submit', authError.message || '인증 메일 발송에 실패했습니다.');
-      setLastError(authError);
-    }
-  };
-
-  const handleRetry = (): void => {
-    setStatus('idle');
-    clearAllErrors();
-    setLastError(null);
+  const onSubmit = (data: ResendFormData): void => {
+    resendMutation.mutate(data.email);
   };
 
   return (
@@ -85,11 +57,11 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
           <p className="text-gray-600">가입하신 이메일 주소로 인증 링크를 다시 보내드립니다.</p>
         </div>
 
-        {status === 'success' ? (
+        {resendMutation.isSuccess ? (
           <div className="space-y-4">
             <Alert type="success" title="메일 발송 완료">
               <p className="text-sm text-green-700">
-                <strong>{formData.email}</strong>로 인증 메일이 발송되었습니다.
+                <strong>{getValues('email')}</strong>로 인증 메일이 발송되었습니다.
               </p>
               <p className="text-sm text-green-700 mt-2">
                 메일함을 확인하시고 인증 링크를 클릭해주세요.
@@ -112,29 +84,32 @@ export default function EmailVerifyResendPage(): React.JSX.Element {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <FormInput
-              name="email"
               label="이메일 주소"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
+              registration={register('email', {
+                validate: (value) => {
+                  const result = validateEmail(value);
+                  return result.isValid || result.error || true;
+                },
+              })}
               placeholder="example@email.com"
-              error={errors.email}
+              error={errors.email?.message}
               icon={FormInputIcons.Email}
-              disabled={status === 'loading'}
+              disabled={resendMutation.isPending}
             />
 
-            {errors.submit && (
+            {resendMutation.error && (
               <FormError
-                message={errors.submit}
-                error={lastError}
-                onRetry={handleRetry}
+                message={resendMutation.error.message}
+                error={resendMutation.error}
+                onRetry={() => resendMutation.reset()}
               />
             )}
 
             <SubmitButton
-              isLoading={status === 'loading'}
+              isLoading={resendMutation.isPending}
               loadingText="발송 중..."
               icon={SubmitButtonIcons.Send}
             >
