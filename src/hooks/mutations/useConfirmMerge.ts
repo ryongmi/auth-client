@@ -7,6 +7,7 @@ interface ConfirmMergeParams {
   accessToken: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useConfirmMerge() {
   return useMutation<void, AuthError, ConfirmMergeParams>({
     mutationFn: ({ requestId, accessToken }) =>

@@ -24,7 +24,6 @@ function EmailVerifyContent(): React.JSX.Element {
         }, 2000);
       },
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const token = searchParams.get('token');

@@ -7,6 +7,7 @@ interface ResetPasswordParams {
   password: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useResetPassword() {
   return useMutation<{ message: string }, AuthError, ResetPasswordParams>({
     mutationFn: (data) => authService.resetPassword({ ...data, confirmPassword: data.password }),

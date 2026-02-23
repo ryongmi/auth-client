@@ -7,6 +7,7 @@ interface InitiateMergeParams {
   accessToken: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useInitiateMerge() {
   return useMutation<AccountMergeInitiateResponse, AuthError, InitiateMergeParams>({
     mutationFn: ({ dto, accessToken }) =>

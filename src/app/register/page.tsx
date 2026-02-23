@@ -227,7 +227,7 @@ function RegisterForm(): React.JSX.Element {
             <p className="text-sm text-gray-500">
               이미 계정이 있으신가요?{' '}
               <Link
-                href={(() => {
+                href={((): string => {
                   const params = new URLSearchParams();
                   if (redirectSession) params.set('redirect_session', redirectSession);
                   if (redirectPath) params.set('redirect', redirectPath);

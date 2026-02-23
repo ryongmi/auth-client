@@ -12,7 +12,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loginAttempts: 0,
   isBlocked: false,
 
-  incrementLoginAttempts: () => {
+  incrementLoginAttempts: (): void => {
     const attempts = get().loginAttempts + 1;
     set({
       loginAttempts: attempts,
@@ -20,7 +20,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
   },
 
-  resetLoginAttempts: () => {
+  resetLoginAttempts: (): void => {
     set({ loginAttempts: 0, isBlocked: false });
   },
 }));

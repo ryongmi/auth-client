@@ -34,6 +34,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
 
   // 병합 요청 조회 (authQuery 성공 시)
   if (authQuery.isSuccess && accessToken && requestId && !mergeRequest && !loadError) {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     void (async () => {
       try {
         const request = await accountMergeService.getAccountMerge(requestId, accessToken);
@@ -76,7 +77,7 @@ function AccountMergeConfirmContent(): React.JSX.Element {
     );
   };
 
-  const getStatusDisplay = (mergeStatus: AccountMergeStatus) => {
+  const getStatusDisplay = (mergeStatus: AccountMergeStatus): { text: string; color: string } => {
     switch (mergeStatus) {
       case AccountMergeStatus.PENDING_EMAIL_VERIFICATION:
       case AccountMergeStatus.EMAIL_VERIFIED:

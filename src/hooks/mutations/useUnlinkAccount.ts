@@ -7,6 +7,7 @@ interface UnlinkAccountParams {
   accessToken: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useUnlinkAccount() {
   const queryClient = useQueryClient();
 
