@@ -1,21 +1,18 @@
 'use client';
 
-import React, { type ChangeEvent, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
+import type { UseFormRegisterReturn } from 'react-hook-form';
 
 /**
  * FormInput 컴포넌트 Props
  */
 export interface FormInputProps {
-  /** 입력 필드 ID 및 name */
-  name: string;
   /** 라벨 텍스트 */
   label: string;
   /** 입력 타입 */
   type?: 'text' | 'email' | 'password' | 'tel' | 'number';
-  /** 입력 값 */
-  value: string;
-  /** 값 변경 핸들러 */
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  /** react-hook-form register() 반환값 */
+  registration?: UseFormRegisterReturn;
   /** 플레이스홀더 */
   placeholder?: string;
   /** 에러 메시지 */
@@ -35,11 +32,9 @@ export interface FormInputProps {
  * 아이콘, 라벨, 에러 표시를 포함한 일관된 입력 필드
  */
 export function FormInput({
-  name,
   label,
   type = 'text',
-  value,
-  onChange,
+  registration,
   placeholder,
   error,
   disabled = false,
@@ -48,11 +43,12 @@ export function FormInput({
   autoComplete,
 }: FormInputProps): React.JSX.Element {
   const hasIcon = Boolean(icon);
+  const fieldName = registration?.name;
 
   return (
     <div>
       <label
-        htmlFor={name}
+        htmlFor={fieldName}
         className="block text-sm font-medium text-gray-600 mb-2"
       >
         {label}
@@ -67,11 +63,8 @@ export function FormInput({
           </div>
         )}
         <input
-          id={name}
-          name={name}
+          id={fieldName}
           type={type}
-          value={value}
-          onChange={onChange}
           disabled={disabled}
           autoComplete={autoComplete}
           className={`w-full ${hasIcon ? 'pl-10' : 'px-4'} pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
@@ -80,6 +73,7 @@ export function FormInput({
               : 'border-gray-300 bg-white'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           placeholder={placeholder}
+          {...registration}
         />
       </div>
       {error && (
