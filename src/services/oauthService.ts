@@ -1,5 +1,5 @@
 import { OAuthAccountSearchResult } from '@krgeobuk/oauth/interfaces';
-import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 
 import { authApi } from '@/lib/httpClient';
 import { convertToAuthError } from '@/lib/errorConverter';

@@ -3,7 +3,7 @@
  * auth-client 전역에서 사용되는 유효성 검사 함수들
  */
 
-import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 import {
   AUTH_CONFIG,
   SUSPICIOUS_PATTERNS,

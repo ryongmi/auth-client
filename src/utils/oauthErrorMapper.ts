@@ -8,7 +8,7 @@
  * 서버로부터 받은 에러 코드(예: OAUTH_101)를 사용자가 읽기 쉬운 메시지로 변환합니다.
  */
 
-import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 
 /**
  * OAuth 제공자 타입 (공통패키지 enum 기반)

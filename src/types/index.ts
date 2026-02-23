@@ -13,8 +13,8 @@ export type { AuthLoginResponse as SignupResponse } from '@krgeobuk/auth/interfa
 export type { InitiateAccountMergeRequest as InitiateAccountMergeDto } from '@krgeobuk/account-merge/interfaces';
 export type { InitiateAccountMergeResponse as AccountMergeInitiateResponse } from '@krgeobuk/account-merge/interfaces';
 export type { GetAccountMergeResponse as AccountMergeResponse } from '@krgeobuk/account-merge/interfaces';
-export { AccountMergeStatus } from '@krgeobuk/shared/account-merge';
-export { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+export { AccountMergeStatus } from '@krgeobuk/shared/account-merge/enum';
+export { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 
 // ============================================================================
 // auth-client 전용 타입 정의
@@ -23,7 +23,7 @@ export { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
 // 공통패키지 타입 import
 import type { AuthSignupRequest } from '@krgeobuk/auth/interfaces';
 import type { AuthLoginRequest } from '@krgeobuk/auth/interfaces';
-import type { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import type { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 
 // auth-client에서만 사용하는 확장된 회원가입 타입
 export interface ExtendedSignupRequest extends AuthSignupRequest {

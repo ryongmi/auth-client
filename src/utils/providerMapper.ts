@@ -1,4 +1,4 @@
-import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth';
+import { OAuthAccountProviderType } from '@krgeobuk/shared/oauth/enum';
 
 /**
  * OAuth Provider 라벨 매핑
