@@ -2,7 +2,7 @@
 
 import React, { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useVerifyEmail } from '@/hooks/mutations/useVerifyEmail';
+import { useVerifyEmail } from '@/hooks/mutations/auth';
 import { StatusCard, StatusCardIcons, AuthPageLayout, AuthPageFallback, LoadingSpinner } from '@/components/common';
 
 function EmailVerifyContent(): React.JSX.Element {

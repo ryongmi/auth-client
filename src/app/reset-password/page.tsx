@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useResetPassword } from '@/hooks/mutations/useResetPassword';
+import { useResetPassword } from '@/hooks/mutations/auth';
 import { validatePassword, validatePasswordConfirm } from '@/utils/validators';
 import {
   FormInput,

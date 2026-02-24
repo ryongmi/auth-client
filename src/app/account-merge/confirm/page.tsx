@@ -2,10 +2,9 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useVerifyMergeToken } from '@/hooks/queries/useVerifyMergeToken';
-import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
-import { useConfirmMerge } from '@/hooks/mutations/useConfirmMerge';
-import { useRejectMerge } from '@/hooks/mutations/useRejectMerge';
+import { useVerifyMergeToken } from '@/hooks/queries/accountMerge';
+import { useAuthInitialize } from '@/hooks/queries/auth';
+import { useConfirmMerge, useRejectMerge } from '@/hooks/mutations/accountMerge';
 import { accountMergeService } from '@/services/accountMergeService';
 import type { AuthError, AccountMergeResponse } from '@/types';
 import { AccountMergeStatus } from '@/types';

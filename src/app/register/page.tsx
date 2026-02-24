@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useSignup } from '@/hooks/mutations/useSignup';
+import { useSignup } from '@/hooks/mutations/auth';
 import { ERROR_MESSAGES } from '@/config/constants';
 import {
   validateEmail,

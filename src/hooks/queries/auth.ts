@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authService } from '@/services/authService';
 import type { AuthError } from '@/types';
 import type { UserProfile } from '@krgeobuk/user/interfaces';
+import { queryKeys } from './keys';
 
 interface AuthInitData {
   accessToken: string;
@@ -21,7 +22,7 @@ export function useAuthInitialize(options: UseAuthInitializeOptions = {}) {
   const { enabled = true } = options;
 
   return useQuery<AuthInitData, AuthError>({
-    queryKey: ['authInitialize'],
+    queryKey: queryKeys.auth.initialize(),
     queryFn: () => authService.initialize(),
     enabled,
     retry: (failureCount, error) => {

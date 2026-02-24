@@ -2,8 +2,8 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
-import { useInitiateMerge } from '@/hooks/mutations/useInitiateMerge';
+import { useAuthInitialize } from '@/hooks/queries/auth';
+import { useInitiateMerge } from '@/hooks/mutations/accountMerge';
 import { getProviderLabel } from '@/utils/providerMapper';
 import {
   StatusCard,

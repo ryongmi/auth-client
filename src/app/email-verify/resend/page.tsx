@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useResendVerification } from '@/hooks/mutations/useResendVerification';
+import { useResendVerification } from '@/hooks/mutations/auth';
 import { validateEmail } from '@/utils/validators';
 import {
   FormInput,

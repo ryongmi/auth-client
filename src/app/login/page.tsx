@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useLogin } from "@/hooks/mutations/useLogin";
+import { useLogin } from "@/hooks/mutations/auth";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 import { OAuthEmailDuplicateError } from "@/components/OAuthEmailDuplicateError";

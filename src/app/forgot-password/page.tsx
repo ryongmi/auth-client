@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { useForgotPassword } from '@/hooks/mutations/useForgotPassword';
+import { useForgotPassword } from '@/hooks/mutations/auth';
 import { validateEmail } from '@/utils/validators';
 import { StatusCard, StatusCardIcons, AuthPageLayout, FormCard } from '@/components/common';
 import {

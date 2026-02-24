@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { oauthService } from '@/services/oauthService';
 import type { AuthError } from '@/types';
+import { queryKeys } from '@/hooks/queries/keys';
 
 interface UnlinkAccountParams {
   provider: string;
@@ -15,7 +16,7 @@ export function useUnlinkAccount() {
     mutationFn: ({ provider, accessToken }) =>
       oauthService.unlinkAccount(provider, accessToken),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['linkedAccounts'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.oauth.linkedAccounts() });
     },
   });
 }

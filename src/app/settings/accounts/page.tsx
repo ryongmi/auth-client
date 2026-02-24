@@ -2,9 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthInitialize } from '@/hooks/queries/useAuthInitialize';
-import { useLinkedAccounts } from '@/hooks/queries/useLinkedAccounts';
-import { useUnlinkAccount } from '@/hooks/mutations/useUnlinkAccount';
+import { useAuthInitialize } from '@/hooks/queries/auth';
+import { useLinkedAccounts } from '@/hooks/queries/oauth';
+import { useUnlinkAccount } from '@/hooks/mutations/oauth';
 import { oauthService } from '@/services/oauthService';
 import { getProviderLabel, getProviderIcon } from '@/utils/providerMapper';
 import { OAuthEmailDuplicateError } from '@/components/OAuthEmailDuplicateError';
