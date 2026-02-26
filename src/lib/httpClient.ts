@@ -6,14 +6,14 @@ import type { AxiosRequestConfig } from 'axios';
 export const httpClient = new HttpClient(
   {
     auth: {
-      baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000',
+      baseURL: process.env.NEXT_PUBLIC_AUTH_SERVER_URL || 'http://localhost:8000/auth',
       timeout: 10000,
       withCredentials: true, // HTTP-only 쿠키 지원
     },
   },
   // 토큰 갱신 설정 (auth-client는 HTTP-only 쿠키 사용하므로 필요시에만)
   {
-    refreshUrl: '/api/auth/refresh',
+    refreshUrl: process.env.NEXT_PUBLIC_AUTH_REFRESH_URL || '/auth/auth/refresh',
     refreshBeforeExpiry: 5 * 60 * 1000, // 5분 전 갱신
   },
   // 보안 정책 (auth-client 특화)

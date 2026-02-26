@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -42,7 +42,6 @@ function LoginPageContent(): React.JSX.Element {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const honeypotRef = useRef<HTMLInputElement>(null);
 
   const loginMutation = useLogin();
   const { loginAttempts, isBlocked } = useAuthStore();
@@ -96,12 +95,6 @@ function LoginPageContent(): React.JSX.Element {
   };
 
   const onSubmit = (data: LoginFormData): void => {
-    // Honeypot 검사 (봇 탐지)
-    if (honeypotRef.current?.value) {
-      setSubmitError(ERROR_MESSAGES.SUSPICIOUS_REQUEST);
-      return;
-    }
-
     setSubmitError(null);
 
     loginMutation.mutate(
@@ -171,23 +164,6 @@ function LoginPageContent(): React.JSX.Element {
         {/* 로그인 폼 */}
         <FormCard>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Honeypot 필드 (봇 탐지용) */}
-            <input
-              ref={honeypotRef}
-              type="text"
-              name="website"
-              tabIndex={-1}
-              autoComplete="off"
-              style={{
-                position: "absolute",
-                left: "-9999px",
-                top: "-9999px",
-                opacity: 0,
-                pointerEvents: "none",
-              }}
-              aria-hidden="true"
-            />
-
             {/* 이메일 */}
             <FormInput
               label="이메일 주소"
