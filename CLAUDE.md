@@ -484,6 +484,6 @@ export default function Page() {
 
 ## 참조 문서
 
-- **공통 Next.js 표준**: [portal-client/CLAUDE.md](../portal-client/CLAUDE.md)
+- **공통 Next.js 표준**: [docs/KRGEOBUK_NEXTJS_CLIENT_GUIDE.md](../docs/KRGEOBUK_NEXTJS_CLIENT_GUIDE.md)
 - **auth-server API**: [auth-server/CLAUDE.md](../auth-server/CLAUDE.md)
 - **전체 아키텍처**: [CLAUDE.md](../CLAUDE.md)
