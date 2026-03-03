@@ -27,16 +27,14 @@ function AccountMergeConfirmContent(): React.JSX.Element {
     enabled: tokenQuery.isSuccess && !!tokenQuery.data?.requestId,
   });
 
-  // 인증 성공 후 병합 요청 조회
-  const accessToken = authQuery.data?.accessToken || null;
   const requestId = tokenQuery.data?.requestId || null;
 
   // 병합 요청 조회 (authQuery 성공 시)
-  if (authQuery.isSuccess && accessToken && requestId && !mergeRequest && !loadError) {
+  if (authQuery.isSuccess && requestId && !mergeRequest && !loadError) {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     void (async () => {
       try {
-        const request = await accountMergeService.getAccountMerge(requestId, accessToken);
+        const request = await accountMergeService.getAccountMerge(requestId);
         const isRequestExpired = new Date(request.expiresAt) < new Date();
         if (isRequestExpired) {
           router.push('/account-merge/expired');
@@ -61,17 +59,17 @@ function AccountMergeConfirmContent(): React.JSX.Element {
   const rejectMutation = useRejectMerge();
 
   const handleConfirm = (): void => {
-    if (!accessToken || requestId === null) return;
+    if (requestId === null) return;
     confirmMutation.mutate(
-      { requestId, accessToken },
+      { requestId },
       { onSuccess: () => router.push('/account-merge/success') },
     );
   };
 
   const handleReject = (): void => {
-    if (!accessToken || requestId === null) return;
+    if (requestId === null) return;
     rejectMutation.mutate(
-      { requestId, accessToken },
+      { requestId },
       { onSuccess: () => router.push('/account-merge/rejected') },
     );
   };

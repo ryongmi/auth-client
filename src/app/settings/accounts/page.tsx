@@ -29,10 +29,9 @@ function OAuthAccountsContent(): React.JSX.Element {
 
   // 인증 초기화
   const authQuery = useAuthInitialize();
-  const accessToken = authQuery.data?.accessToken || null;
 
   // 연동 계정 목록 조회
-  const linkedAccountsQuery = useLinkedAccounts(accessToken);
+  const linkedAccountsQuery = useLinkedAccounts();
   const linkedAccounts = linkedAccountsQuery.data || [];
 
   // 연동 해제 mutation
@@ -51,7 +50,7 @@ function OAuthAccountsContent(): React.JSX.Element {
     const linked = searchParams.get('linked');
     const provider = searchParams.get('provider');
 
-    if (linked === 'true' && provider && accessToken) {
+    if (linked === 'true' && provider && authQuery.isSuccess) {
       setMessage({
         type: 'success',
         text: `${provider === OAuthAccountProviderType.GOOGLE ? 'Google' : 'Naver'} 계정이 성공적으로 연동되었습니다.`,
@@ -59,7 +58,7 @@ function OAuthAccountsContent(): React.JSX.Element {
 
       router.replace('/settings/accounts');
     }
-  }, [searchParams, accessToken, router]);
+  }, [searchParams, authQuery.isSuccess, router]);
 
   const handleLinkAccount = (
     provider: typeof OAuthAccountProviderType.GOOGLE | typeof OAuthAccountProviderType.NAVER
@@ -68,7 +67,7 @@ function OAuthAccountsContent(): React.JSX.Element {
   };
 
   const handleUnlinkAccount = (provider: string): void => {
-    if (!accessToken) {
+    if (!authQuery.isSuccess) {
       setMessage({ type: 'error', text: '인증 정보가 없습니다. 페이지를 새로고침해주세요.' });
       return;
     }
@@ -78,7 +77,7 @@ function OAuthAccountsContent(): React.JSX.Element {
     }
 
     unlinkMutation.mutate(
-      { provider, accessToken },
+      { provider },
       {
         onSuccess: (result) => {
           setMessage({

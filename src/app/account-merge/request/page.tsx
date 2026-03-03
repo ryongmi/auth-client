@@ -41,7 +41,7 @@ function AccountMergeRequestContent(): React.JSX.Element {
   }
 
   const handleSubmit = (): void => {
-    if (!authQuery.data?.accessToken) return;
+    if (!authQuery.isSuccess) return;
 
     mergeMutation.mutate({
       dto: {
@@ -49,7 +49,6 @@ function AccountMergeRequestContent(): React.JSX.Element {
         providerId: providerId || '',
         email,
       },
-      accessToken: authQuery.data.accessToken,
     });
   };
 
