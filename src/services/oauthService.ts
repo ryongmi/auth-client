@@ -8,13 +8,9 @@ export class OAuthService {
   /**
    * 연동된 OAuth 계정 목록 조회
    */
-  async getLinkedAccounts(accessToken: string): Promise<OAuthAccountSearchResult[]> {
+  async getLinkedAccounts(): Promise<OAuthAccountSearchResult[]> {
     try {
-      const response = await authApi.get<OAuthAccountSearchResult[]>('/oauth/accounts', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await authApi.get<OAuthAccountSearchResult[]>('/oauth/accounts');
       return response.data;
     } catch (error) {
       throw convertToAuthError(error);
@@ -34,18 +30,10 @@ export class OAuthService {
   /**
    * OAuth 계정 연동 해제
    */
-  async unlinkAccount(
-    provider: string,
-    accessToken: string
-  ): Promise<{ success: boolean; message: string }> {
+  async unlinkAccount(provider: string): Promise<{ success: boolean; message: string }> {
     try {
       const response = await authApi.delete<{ success: boolean; message: string }>(
-        `/oauth/accounts/${provider}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        `/oauth/accounts/${provider}`
       );
       return response.data;
     } catch (error) {

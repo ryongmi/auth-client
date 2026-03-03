@@ -5,7 +5,6 @@ import { queryKeys } from '@/hooks/queries/keys';
 
 interface UnlinkAccountParams {
   provider: string;
-  accessToken: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -13,8 +12,7 @@ export function useUnlinkAccount() {
   const queryClient = useQueryClient();
 
   return useMutation<{ success: boolean; message: string }, AuthError, UnlinkAccountParams>({
-    mutationFn: ({ provider, accessToken }) =>
-      oauthService.unlinkAccount(provider, accessToken),
+    mutationFn: ({ provider }) => oauthService.unlinkAccount(provider),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.oauth.linkedAccounts() });
     },

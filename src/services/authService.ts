@@ -1,4 +1,4 @@
-import { authApi } from '@/lib/httpClient';
+import { authApi, tokenManager } from '@/lib/httpClient';
 import { convertToAuthError } from '@/lib/errorConverter';
 import {
   LoginRequest,
@@ -118,7 +118,9 @@ export class AuthService {
       const response = await authApi.post<{ accessToken: string; user: UserProfile }>(
         '/auth/initialize'
       );
-      return response.data;
+      const { accessToken, user } = response.data;
+      tokenManager.setAccessToken(accessToken);
+      return { accessToken, user };
     } catch (error) {
       throw convertToAuthError(error);
     }

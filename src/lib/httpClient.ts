@@ -52,5 +52,8 @@ export const authApi = {
     httpClient.delete<T>('auth', url, config),
 };
 
+// 토큰 매니저 접근자
+export const tokenManager = httpClient.getTokenManager();
+
 // 기본 내보내기 (기존 코드 호환성)
 export default authApi;

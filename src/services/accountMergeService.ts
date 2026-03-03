@@ -32,22 +32,13 @@ export class AccountMergeService {
    * 계정 병합 요청 시작
    * User A가 OAuth 로그인 시도 시 이메일이 이미 존재하는 경우 병합 요청 생성
    * @param dto - 병합 요청 데이터 (provider, providerId, email)
-   * @param accessToken - 인증 토큰
    * @returns 생성된 병합 요청 ID와 메시지
    */
-  async initiateAccountMerge(
-    dto: InitiateAccountMergeDto,
-    accessToken: string
-  ): Promise<AccountMergeInitiateResponse> {
+  async initiateAccountMerge(dto: InitiateAccountMergeDto): Promise<AccountMergeInitiateResponse> {
     try {
       const response = await authApi.post<AccountMergeInitiateResponse>(
         '/account-merge/request',
-        dto,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        dto
       );
       return response.data;
     } catch (error) {
@@ -58,16 +49,11 @@ export class AccountMergeService {
   /**
    * 계정 병합 요청 조회
    * @param requestId - 병합 요청 ID
-   * @param accessToken - 인증 토큰
    * @returns 병합 요청 정보
    */
-  async getAccountMerge(requestId: number, accessToken: string): Promise<AccountMergeResponse> {
+  async getAccountMerge(requestId: number): Promise<AccountMergeResponse> {
     try {
-      const response = await authApi.get<AccountMergeResponse>(`/account-merge/${requestId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await authApi.get<AccountMergeResponse>(`/account-merge/${requestId}`);
       return response.data;
     } catch (error) {
       throw convertToAuthError(error);
@@ -77,19 +63,10 @@ export class AccountMergeService {
   /**
    * 계정 병합 승인 (User B가 승인)
    * @param requestId - 병합 요청 ID
-   * @param accessToken - 인증 토큰
    */
-  async confirmAccountMerge(requestId: number, accessToken: string): Promise<void> {
+  async confirmAccountMerge(requestId: number): Promise<void> {
     try {
-      await authApi.post(
-        `/account-merge/${requestId}/confirm`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await authApi.post(`/account-merge/${requestId}/confirm`, {});
     } catch (error) {
       throw convertToAuthError(error);
     }
@@ -98,19 +75,10 @@ export class AccountMergeService {
   /**
    * 계정 병합 거부 (User B가 거부)
    * @param requestId - 병합 요청 ID
-   * @param accessToken - 인증 토큰
    */
-  async rejectAccountMerge(requestId: number, accessToken: string): Promise<void> {
+  async rejectAccountMerge(requestId: number): Promise<void> {
     try {
-      await authApi.post(
-        `/account-merge/${requestId}/reject`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await authApi.post(`/account-merge/${requestId}/reject`, {});
     } catch (error) {
       throw convertToAuthError(error);
     }
