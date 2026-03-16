@@ -69,8 +69,8 @@ export function FormInput({
           autoComplete={autoComplete}
           className={`w-full ${hasIcon ? 'pl-10' : 'px-4'} pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
             error
-              ? 'border-red-500 bg-red-50'
-              : 'border-gray-300 bg-white'
+              ? 'border-red-500 bg-red-50 text-red-900 placeholder-red-300'
+              : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           placeholder={placeholder}
           {...registration}
