@@ -108,8 +108,8 @@ function OAuthAccountsContent(): React.JSX.Element {
 
   return (
     <AuthPageLayout variant="dashboard">
-        <h1 className="text-3xl font-bold mb-2">OAuth 계정 관리</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-3xl font-bold mb-2 text-gray-900">OAuth 계정 관리</h1>
+        <p className="text-gray-700 mb-8">
           연동된 계정을 관리하고 새로운 로그인 방식을 추가할 수 있습니다.
         </p>
 
@@ -172,7 +172,7 @@ function OAuthAccountsContent(): React.JSX.Element {
         )}
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">연동된 계정</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">연동된 계정</h2>
           <div className="space-y-3">
             {linkedAccounts.map((account) => (
               <div
@@ -182,8 +182,8 @@ function OAuthAccountsContent(): React.JSX.Element {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getProviderIcon(account.provider)}</span>
                   <div>
-                    <div className="font-medium">{getProviderLabel(account.provider)}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-gray-900">{getProviderLabel(account.provider)}</div>
+                    <div className="text-sm text-gray-700">
                       연동일: {new Date(account.createdAt).toLocaleDateString('ko-KR')}
                     </div>
                   </div>
@@ -198,13 +198,13 @@ function OAuthAccountsContent(): React.JSX.Element {
                     </button>
                   )}
                 {account.provider === OAuthAccountProviderType.HOMEPAGE && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="text-xs text-gray-700 bg-gray-200 px-3 py-1 rounded-full">
                     기본 계정
                   </span>
                 )}
                 {linkedAccounts.length === 1 &&
                   account.provider !== OAuthAccountProviderType.HOMEPAGE && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    <span className="text-xs text-gray-700 bg-gray-200 px-3 py-1 rounded-full">
                       해제 불가
                     </span>
                   )}
@@ -214,15 +214,15 @@ function OAuthAccountsContent(): React.JSX.Element {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-4">연동 가능한 계정</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">연동 가능한 계정</h2>
           <div className="space-y-3">
             {!isLinked(OAuthAccountProviderType.GOOGLE) && (
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">📧</span>
                   <div>
-                    <div className="font-medium">Google</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-gray-900">Google</div>
+                    <div className="text-sm text-gray-700">
                       Google 계정으로 로그인할 수 있습니다
                     </div>
                   </div>
@@ -241,8 +241,8 @@ function OAuthAccountsContent(): React.JSX.Element {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">💚</span>
                   <div>
-                    <div className="font-medium">Naver</div>
-                    <div className="text-sm text-gray-500">Naver 계정으로 로그인할 수 있습니다</div>
+                    <div className="font-medium text-gray-900">Naver</div>
+                    <div className="text-sm text-gray-700">Naver 계정으로 로그인할 수 있습니다</div>
                   </div>
                 </div>
                 <button
@@ -256,7 +256,7 @@ function OAuthAccountsContent(): React.JSX.Element {
 
             {isLinked(OAuthAccountProviderType.GOOGLE) &&
               isLinked(OAuthAccountProviderType.NAVER) && (
-                <div className="text-center text-gray-500 py-8">
+                <div className="text-center text-gray-700 py-8">
                   모든 OAuth 계정이 연동되었습니다.
                 </div>
               )}
@@ -266,7 +266,7 @@ function OAuthAccountsContent(): React.JSX.Element {
         <div className="mt-8 pt-8 border-t border-gray-200">
           <button
             onClick={() => router.push('/settings')}
-            className="text-gray-600 hover:text-gray-800 transition-colors"
+            className="text-gray-700 hover:text-gray-900 transition-colors"
           >
             ← 설정으로 돌아가기
           </button>
