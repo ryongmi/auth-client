@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   // Docker 지원을 위한 standalone 출력
   output: 'standalone',
 
+  reactStrictMode: true,
+
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+
   // CORS 및 보안 헤더 설정
   async headers() {
     return [
