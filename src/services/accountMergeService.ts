@@ -20,7 +20,7 @@ export class AccountMergeService {
   async verifyToken(token: string): Promise<{ requestId: number }> {
     try {
       const response = await authApi.get<{ requestId: number }>(
-        `/api/account-merge/verify-token?token=${encodeURIComponent(token)}`
+        `/account-merge/verify-token?token=${encodeURIComponent(token)}`
       );
       return response.data;
     } catch (error) {
