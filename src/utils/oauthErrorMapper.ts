@@ -2,7 +2,7 @@
  * OAuth 에러 코드를 사용자 친화적인 메시지로 매핑하는 유틸리티
  *
  * NOTE: 현재 auth-client 전용으로 구현
- * 다른 클라이언트(portal-client, my-pick-client 등)에서도 사용하게 되면
+ * 다른 클라이언트(portal-client, mypick-client 등)에서도 사용하게 되면
  * @krgeobuk/oauth/client-utils로 이동하여 공통화할 것을 권장합니다.
  *
  * 서버로부터 받은 에러 코드(예: OAUTH_101)를 사용자가 읽기 쉬운 메시지로 변환합니다.
